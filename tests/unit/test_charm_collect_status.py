@@ -11,38 +11,21 @@ from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from charm import OAIRANCUOperator
 
-MULTUS_LIB = "charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib"
-GNB_IDENTITY_LIB = "charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity.GnbIdentityProvides"
-MULTUS_K8S_CLIENT = "charms.kubernetes_charm_libraries.v0.multus.KubernetesClient"
-F1_LIB = "charms.oai_ran_cu_k8s.v0.fiveg_f1.F1Provides"
-NAMESPACE = "whatever"
-WORKLOAD_CONTAINER_NAME = "cu"
-
 
 class TestCharmCollectStatus:
     patcher_k8s_service_patch = patch("charm.KubernetesServicePatch")
-    patcher_multus_ready = patch(f"{MULTUS_LIB}.is_ready")
-    patcher_multus_available = patch(f"{MULTUS_LIB}.multus_is_available")
-    patcher_gnb_identity = patch(f"{GNB_IDENTITY_LIB}.publish_gnb_identity_information")
-    patcher_f1_set_information = patch(f"{F1_LIB}.set_f1_information")
     patcher_check_output = patch("charm.check_output")
-    patcher_multus_statefulset_patch = patch(f"{MULTUS_K8S_CLIENT}.statefulset_is_patched")
     patcher_k8s_privileged = patch("charm.K8sPrivileged")
+    patcher_k8s_multus = patch("charm.KubernetesMultusCharmLib")
 
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self.mock_k8s_service_patch = TestCharmCollectStatus.patcher_k8s_service_patch.start()
-        self.mock_multus_ready = TestCharmCollectStatus.patcher_multus_ready.start()
-        self.mock_multus_available = TestCharmCollectStatus.patcher_multus_available.start()
-        self.mock_gnb_identity = TestCharmCollectStatus.patcher_gnb_identity.start()
         self.mock_check_output = TestCharmCollectStatus.patcher_check_output.start()
-        self.mock_multus_statefulset_patch = (
-            TestCharmCollectStatus.patcher_multus_statefulset_patch.start()
-        )
-        self.mock_f1_set_information = TestCharmCollectStatus.patcher_f1_set_information.start()
         self.mock_k8s_privileged = (
             TestCharmCollectStatus.patcher_k8s_privileged.start().return_value
         )
+        self.mock_k8s_multus = TestCharmCollectStatus.patcher_k8s_multus.start().return_value
         yield
         request.addfinalizer(self.tearDown)
 
@@ -253,7 +236,7 @@ class TestCharmCollectStatus:
             state_in = scenario.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
-            self.mock_multus_available.return_value = False
+            self.mock_k8s_multus.multus_is_available.return_value = False
 
             state_out = self.ctx.run("collect_unit_status", state_in)
 
@@ -286,8 +269,8 @@ class TestCharmCollectStatus:
             state_in = scenario.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
-            self.mock_multus_available.return_value = True
-            self.mock_multus_ready.return_value = False
+            self.mock_k8s_multus.multus_is_available.return_value = True
+            self.mock_k8s_multus.is_ready.return_value = False
 
             state_out = self.ctx.run("collect_unit_status", state_in)
 

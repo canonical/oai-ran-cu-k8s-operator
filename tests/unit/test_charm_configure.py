@@ -12,19 +12,12 @@ from ops.pebble import Layer
 
 from charm import OAIRANCUOperator
 
-MULTUS_LIB = "charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib"
 GNB_IDENTITY_LIB = "charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity.GnbIdentityProvides"
-MULTUS_K8S_CLIENT = "charms.kubernetes_charm_libraries.v0.multus.KubernetesClient"
 F1_LIB = "charms.oai_ran_cu_k8s.v0.fiveg_f1.F1Provides"
-N2_REQUIRES_LIB = "charms.sdcore_amf_k8s.v0.fiveg_n2.N2Requires"
-NAMESPACE = "whatever"
-WORKLOAD_CONTAINER_NAME = "cu"
 
 
 class TestCharmConfigure:
     patcher_k8s_service_patch = patch("charm.KubernetesServicePatch")
-    patcher_multus_ready = patch(f"{MULTUS_LIB}.is_ready")
-    patcher_multus_available = patch(f"{MULTUS_LIB}.multus_is_available")
     patcher_gnb_identity = patch(f"{GNB_IDENTITY_LIB}.publish_gnb_identity_information")
     patcher_f1_set_information = patch(f"{F1_LIB}.set_f1_information")
     patcher_check_output = patch("charm.check_output")
@@ -34,8 +27,6 @@ class TestCharmConfigure:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self.mock_k8s_service_patch = TestCharmConfigure.patcher_k8s_service_patch.start()
-        self.mock_multus_ready = TestCharmConfigure.patcher_multus_ready.start()
-        self.mock_multus_available = TestCharmConfigure.patcher_multus_available.start()
         self.mock_gnb_identity = TestCharmConfigure.patcher_gnb_identity.start()
         self.mock_check_output = TestCharmConfigure.patcher_check_output.start()
         self.mock_f1_set_information = TestCharmConfigure.patcher_f1_set_information.start()
@@ -287,7 +278,7 @@ class TestCharmConfigure:
 
             self.mock_gnb_identity.assert_called_once_with(
                 relation_id=fiveg_gnb_relation.relation_id,
-                gnb_name=f"{NAMESPACE}-oai-ran-cu-k8s-cu",
+                gnb_name="whatever-oai-ran-cu-k8s-cu",
                 tac=1,
             )
 
