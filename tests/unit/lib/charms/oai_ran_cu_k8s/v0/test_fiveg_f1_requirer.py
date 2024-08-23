@@ -1,120 +1,101 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from unittest.mock import PropertyMock, call, patch
+from unittest.mock import patch
 
 import pytest
-from charms.oai_ran_cu_k8s.v0.fiveg_f1 import FivegF1Error
-from ops import BoundEvent, testing
+import scenario
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import FivegF1ProviderAvailableEvent
 
 from tests.unit.lib.charms.oai_ran_cu_k8s.v0.test_charms.test_requirer_charm.src.charm import (
     WhateverCharm,
 )
 
-TEST_CHARM_PATH = "tests.unit.lib.charms.oai_ran_cu_k8s.v0.test_charms.test_requirer_charm.src.charm.WhateverCharm"  # noqa: E501
-FIVEG_F1_REQUIRER_EVENTS_PATH = "charms.oai_ran_cu_k8s.v0.fiveg_f1.FivegF1RequirerCharmEvents"
-FIVEG_F1_REQUIRES_PATH = "charms.oai_ran_cu_k8s.v0.fiveg_f1.F1Requires"
-RELATION_NAME = "fiveg_f1"
-
 
 class TestFivegF1Requires:
-    patcher_f1_port = patch(f"{TEST_CHARM_PATH}.TEST_F1_PORT", new_callable=PropertyMock)
-    patcher_fiveg_f1_provider_available = patch(
-        f"{FIVEG_F1_REQUIRER_EVENTS_PATH}.fiveg_f1_provider_available"
-    )
-
-    @pytest.fixture()
-    def setUp(self) -> None:
-        self.mock_f1_port = TestFivegF1Requires.patcher_f1_port.start()
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
+        yield
+        request.addfinalizer(self.tearDown)
 
     def tearDown(self) -> None:
         patch.stopall()
 
     @pytest.fixture(autouse=True)
-    def setup_harness(self, setUp, request):
-        self.harness = testing.Harness(WhateverCharm)
-        self.harness.begin()
-        self.harness.set_leader(is_leader=True)
-        yield self.harness
-        self.harness.cleanup()
-        request.addfinalizer(self.tearDown)
+    def context(self):
+        self.ctx = scenario.Context(
+            charm_type=WhateverCharm,
+            meta={
+                "name": "whatever-charm",
+                "requires": {"fiveg_f1": {"interface": "fiveg_f1"}},
+            },
+            actions={"set-f1-information": {"params": {"port": {"type": "string"}}}},
+        )
 
     def test_given_fiveg_f1_relation_created_when_relation_changed_then_event_with_provider_f1_ip_address_and_port_is_emitted(  # noqa: E501
         self,
     ):
-        mock_fiveg_f1_provider_available = (
-            TestFivegF1Requires.patcher_fiveg_f1_provider_available.start()
-        )
-        mock_fiveg_f1_provider_available.__class__ = BoundEvent
-        test_f1_port = 1234
-        test_provider_f1_ip_address = "123.123.123.123"
-        test_provider_f1_port = 4321
-        self.mock_f1_port.return_value = test_f1_port
-
-        relation_id = self.harness.add_relation(
-            relation_name=RELATION_NAME, remote_app="whatever-app"
-        )
-        self.harness.add_relation_unit(relation_id, "whatever-app/0")
-        self.harness.update_relation_data(
-            relation_id=relation_id,
-            app_or_unit="whatever-app",
-            key_values={
-                "f1_ip_address": test_provider_f1_ip_address,
-                "f1_port": str(test_provider_f1_port),
+        fiveg_f1_relation = scenario.Relation(
+            endpoint="fiveg_f1",
+            interface="fiveg_f1",
+            remote_app_data={
+                "f1_ip_address": "1.2.3.4",
+                "f1_port": "1234",
             },
         )
+        state_in = scenario.State(
+            relations=[fiveg_f1_relation],
+            leader=True,
+        )
 
-        calls = [
-            call.emit(
-                f1_ip_address=test_provider_f1_ip_address,
-                f1_port=str(test_provider_f1_port),
-            ),
-        ]
-        mock_fiveg_f1_provider_available.assert_has_calls(calls)
+        self.ctx.run(fiveg_f1_relation.changed_event, state_in)
 
-    def test_given_valid_f1_port_when_fiveg_f1_provider_available_then_requirer_f1_port_is_pushed_to_the_relation_databag(  # noqa: E501
+        assert len(self.ctx.emitted_events) == 2
+        assert isinstance(self.ctx.emitted_events[1], FivegF1ProviderAvailableEvent)
+        assert self.ctx.emitted_events[1].f1_ip_address == "1.2.3.4"
+        assert self.ctx.emitted_events[1].f1_port == "1234"
+
+    def test_given_valid_f1_port_when_set_f1_information_then_requirer_f1_port_is_pushed_to_the_relation_databag(  # noqa: E501
         self,
     ):
-        test_f1_port = 1234
-        test_provider_f1_ip_address = "123.123.123.123"
-        test_provider_f1_port = 4321
-        self.mock_f1_port.return_value = test_f1_port
-
-        relation_id = self.harness.add_relation(
-            relation_name=RELATION_NAME, remote_app="whatever-app"
+        fiveg_f1_relation = scenario.Relation(
+            endpoint="fiveg_f1",
+            interface="fiveg_f1",
         )
-        self.harness.add_relation_unit(relation_id, "whatever-app/0")
-        self.harness.update_relation_data(
-            relation_id=relation_id,
-            app_or_unit="whatever-app",
-            key_values={
-                "f1_ip_address": test_provider_f1_ip_address,
-                "f1_port": str(test_provider_f1_port),
+        state_in = scenario.State(
+            relations=[fiveg_f1_relation],
+            leader=True,
+        )
+
+        action = scenario.Action(
+            name="set-f1-information",
+            params={
+                "port": "1234",
             },
         )
 
-        relation_data = self.harness.get_relation_data(
-            relation_id=relation_id, app_or_unit=self.harness.charm.app
-        )
+        action_output = self.ctx.run_action(action, state_in)
 
-        assert str(test_f1_port) == relation_data["f1_port"]
+        assert action_output.state.relations[0].local_app_data["f1_port"] == "1234"
 
     def test_given_invalid_f1_port_when_fiveg_f1_provider_available_then_error_is_raised(self):
-        test_f1_port = "Not a valid port"
-        test_provider_f1_ip_address = "123.123.123.123"
-        test_provider_f1_port = 4321
-        self.mock_f1_port.return_value = test_f1_port
+        fiveg_f1_relation = scenario.Relation(
+            endpoint="fiveg_f1",
+            interface="fiveg_f1",
+        )
+        state_in = scenario.State(
+            relations=[fiveg_f1_relation],
+            leader=True,
+        )
 
-        with pytest.raises(FivegF1Error):
-            relation_id = self.harness.add_relation(
-                relation_name=RELATION_NAME, remote_app="whatever-app"
-            )
-            self.harness.add_relation_unit(relation_id, "whatever-app/0")
-            self.harness.update_relation_data(
-                relation_id=relation_id,
-                app_or_unit="whatever-app",
-                key_values={
-                    "f1_ip_address": test_provider_f1_ip_address,
-                    "f1_port": str(test_provider_f1_port),
-                },
-            )
+        action = scenario.Action(
+            name="set-f1-information",
+            params={
+                "port": "Not a valid port",
+            },
+        )
+
+        with pytest.raises(Exception) as e:
+            self.ctx.run_action(action, state_in)
+
+        assert "Invalid relation data" in str(e.value)

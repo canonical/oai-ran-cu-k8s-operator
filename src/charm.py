@@ -10,7 +10,6 @@ from ipaddress import IPv4Address
 from subprocess import check_output
 from typing import List, Optional
 
-from charm_config import CharmConfig, CharmConfigInvalidError, CNIType
 from charms.kubernetes_charm_libraries.v0.multus import (
     KubernetesMultusCharmLib,
     NetworkAnnotation,
@@ -26,7 +25,6 @@ from charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity import (
     GnbIdentityProvides,
 )
 from jinja2 import Environment, FileSystemLoader
-from k8s_privileged import K8sPrivileged
 from lightkube.models.core_v1 import ServicePort
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus
@@ -34,6 +32,9 @@ from ops.charm import CharmBase, CharmEvents
 from ops.framework import EventBase, EventSource
 from ops.main import main
 from ops.pebble import Layer
+
+from charm_config import CharmConfig, CharmConfigInvalidError, CNIType
+from k8s_privileged import K8sPrivileged
 
 logger = logging.getLogger(__name__)
 
