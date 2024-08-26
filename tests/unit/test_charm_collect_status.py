@@ -3,41 +3,15 @@
 # See LICENSE file for licensing details.
 
 import tempfile
-from unittest.mock import patch
 
 import pytest
 import scenario
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
-from charm import OAIRANCUOperator
+from tests.unit.fixtures import CUCharmFixtures
 
 
-class TestCharmCollectStatus:
-    patcher_k8s_service_patch = patch("charm.KubernetesServicePatch")
-    patcher_check_output = patch("charm.check_output")
-    patcher_k8s_privileged = patch("charm.K8sPrivileged")
-    patcher_k8s_multus = patch("charm.KubernetesMultusCharmLib")
-
-    @pytest.fixture(autouse=True)
-    def setUp(self, request):
-        self.mock_k8s_service_patch = TestCharmCollectStatus.patcher_k8s_service_patch.start()
-        self.mock_check_output = TestCharmCollectStatus.patcher_check_output.start()
-        self.mock_k8s_privileged = (
-            TestCharmCollectStatus.patcher_k8s_privileged.start().return_value
-        )
-        self.mock_k8s_multus = TestCharmCollectStatus.patcher_k8s_multus.start().return_value
-        yield
-        request.addfinalizer(self.tearDown)
-
-    def tearDown(self) -> None:
-        patch.stopall()
-
-    @pytest.fixture(autouse=True)
-    def context(self):
-        self.ctx = scenario.Context(
-            charm_type=OAIRANCUOperator,
-        )
-
+class TestCharmCollectStatus(CUCharmFixtures):
     def test_given_unit_is_not_leader_when_collect_unit_status_then_status_is_blocked(self):
         state_in = scenario.State(leader=False)
 

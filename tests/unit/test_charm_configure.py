@@ -4,46 +4,14 @@
 
 import os
 import tempfile
-from unittest.mock import patch
 
-import pytest
 import scenario
 from ops.pebble import Layer
 
-from charm import OAIRANCUOperator
-
-GNB_IDENTITY_LIB = "charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity.GnbIdentityProvides"
-F1_LIB = "charms.oai_ran_cu_k8s.v0.fiveg_f1.F1Provides"
+from tests.unit.fixtures import CUCharmFixtures
 
 
-class TestCharmConfigure:
-    patcher_k8s_service_patch = patch("charm.KubernetesServicePatch")
-    patcher_gnb_identity = patch(f"{GNB_IDENTITY_LIB}.publish_gnb_identity_information")
-    patcher_f1_set_information = patch(f"{F1_LIB}.set_f1_information")
-    patcher_check_output = patch("charm.check_output")
-    patcher_k8s_multus = patch("charm.KubernetesMultusCharmLib")
-    patcher_k8s_privileged = patch("charm.K8sPrivileged")
-
-    @pytest.fixture(autouse=True)
-    def setUp(self, request):
-        self.mock_k8s_service_patch = TestCharmConfigure.patcher_k8s_service_patch.start()
-        self.mock_gnb_identity = TestCharmConfigure.patcher_gnb_identity.start()
-        self.mock_check_output = TestCharmConfigure.patcher_check_output.start()
-        self.mock_f1_set_information = TestCharmConfigure.patcher_f1_set_information.start()
-        self.mock_k8s_privileged = TestCharmConfigure.patcher_k8s_privileged.start().return_value
-        self.mock_k8s_multus = TestCharmConfigure.patcher_k8s_multus.start().return_value
-        yield
-        request.addfinalizer(self.tearDown)
-
-    def tearDown(self) -> None:
-        patch.stopall()
-
-    @pytest.fixture(autouse=True)
-    def context(self):
-        self.ctx = scenario.Context(
-            charm_type=OAIRANCUOperator,
-        )
-
+class TestCharmConfigure(CUCharmFixtures):
     def test_given_statefulset_is_not_patched_when_config_changed_then_statefulset_is_patched(
         self,
     ):
