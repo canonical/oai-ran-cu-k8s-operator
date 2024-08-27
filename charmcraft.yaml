@@ -59,8 +59,9 @@ config:
       type: string
       default: "f1"
       description: |
-        Name of the network interface handling communication over the F1 interface.
-        Host interface to use for the DU Network. If not specified, a bridge will be used.
+        Host interface to use for the F1 communication with the DU.
+        Used only in with the `macvlan` cni.
+        The corresponding macvlan interface needs to exist on the host.
     f1-ip-address:
       type: string
       default: "192.168.251.7/24"
@@ -73,8 +74,9 @@ config:
       type: string
       default: "n2"
       description: |
-        Name of the network interface handling communication over the N2 interface.
-        If not specified, a bridge will be used.
+        Host interface to use for the N2 communication with the AMF.
+        Used only in with the `macvlan` cni.
+        The corresponding macvlan interface needs to exist on the host.
     n2-ip-address:
       type: string
       default: "192.168.250.6/24"
@@ -83,8 +85,9 @@ config:
       type: string
       default: "n3"
       description: | 
-        Name of the network interface handling communication over the N3 interface. 
-        If not specified, a bridge will be used.
+        Host interface to use for the N3 communication with the UPF.
+        Used only in with the `macvlan` cni.
+        The corresponding macvlan interface needs to exist on the host.
     n3-ip-address:
       type: string
       default: "192.168.251.6/24"
