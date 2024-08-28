@@ -109,7 +109,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 relations=[n2_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = True
-            self.mock_check_output.return_value = b"1.2.3.4"
+            self.mock_check_output.return_value = b"1.1.1.1"
 
             self.ctx.run("config_changed", state_in)
 

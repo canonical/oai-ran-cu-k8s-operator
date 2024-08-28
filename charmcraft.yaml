@@ -69,16 +69,6 @@ config:
       type: int
       default: 2153
       description: Number of the port handling communication over the F1 interface.
-    n2-interface-name:
-      type: string
-      default: "n2"
-      description: |
-        Host interface to use for the N2 communication with the AMF.
-        With the `macvlan` cni, the corresponding macvlan interface needs to exist on the host.
-    n2-ip-address:
-      type: string
-      default: "192.168.250.6/24"
-      description: CU N2 interface IP Address in CIDR format
     n3-interface-name:
       type: string
       default: "n3"

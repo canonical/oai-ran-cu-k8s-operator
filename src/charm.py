@@ -219,8 +219,8 @@ class OAIRANCUOperator(CharmBase):
             du_f1_port = DU_F1_DEFAULT_PORT
         if not (
             self._charm_config.f1_ip_address
-            and self._charm_config.n2_ip_address
             and self._charm_config.n3_ip_address
+            and (n2_ip_address := _get_pod_ip())
         ):
             logger.warning("Interfaces ip addresses are not available")
             return ""
@@ -234,7 +234,7 @@ class OAIRANCUOperator(CharmBase):
             cu_f1_port=self._charm_config.f1_port,
             du_f1_port=du_f1_port,
             cu_n2_interface_name=self._charm_config.n2_interface_name,
-            cu_n2_ip_address=str(self._charm_config.n2_ip_address).split("/")[0],
+            cu_n2_ip_address=n2_ip_address,
             cu_n3_interface_name=self._charm_config.n3_interface_name,
             cu_n3_ip_address=str(self._charm_config.n3_ip_address).split("/")[0],
             amf_external_address=self._n2_requirer.amf_ip_address,
@@ -254,10 +254,6 @@ class OAIRANCUOperator(CharmBase):
             NetworkAnnotation(
                 name=f"{self._charm_config.n3_interface_name}-net",
                 interface=self._charm_config.n3_interface_name,
-            ),
-            NetworkAnnotation(
-                name=f"{self._charm_config.n2_interface_name}-net",
-                interface=self._charm_config.n2_interface_name,
             ),
             NetworkAnnotation(
                 name=f"{self._charm_config.f1_interface_name}-net",
@@ -307,14 +303,6 @@ class OAIRANCUOperator(CharmBase):
             "f1-br",
         )
 
-    def _get_n2_nad_config(self) -> dict:
-        n2_nad_config = self._get_base_config(self._charm_config.n2_ip_address)
-        return self._add_cni_type_to_nad_config(
-            n2_nad_config,
-            self._charm_config.n2_interface_name,
-            "n2-br",
-        )
-
     def _add_cni_type_to_nad_config(
         self, nad_config: dict, master_interface: str, bridge: str
     ) -> dict:
@@ -339,10 +327,6 @@ class OAIRANCUOperator(CharmBase):
             NetworkAttachmentDefinition(
                 metadata=ObjectMeta(name=f"{self._charm_config.f1_interface_name}-net"),
                 spec={"config": json.dumps(self._get_f1_nad_config())},
-            ),
-            NetworkAttachmentDefinition(
-                metadata=ObjectMeta(name=f"{self._charm_config.n2_interface_name}-net"),
-                spec={"config": json.dumps(self._get_n2_nad_config())},
             ),
         ]
 

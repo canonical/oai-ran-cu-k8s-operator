@@ -56,8 +56,7 @@ class CUConfig(BaseModel):  # pylint: disable=too-few-public-methods
     f1_interface_name: StrictStr = Field(default="f1", min_length=1)
     f1_ip_address: str = Field(default="192.168.251.7/24")
     f1_port: int = Field(ge=1, le=65535)
-    n2_interface_name: StrictStr = Field(default="n2", min_length=1)
-    n2_ip_address: str = Field(default="192.168.250.6/24")
+    n2_interface_name: StrictStr = Field(default="eth0", min_length=1)
     n3_interface_name: StrictStr = Field(default="n3", min_length=1)
     n3_ip_address: str = Field(default="192.168.251.6/24")
     n3_gateway_ip: IPv4Address = Field(default=None)
@@ -67,7 +66,7 @@ class CUConfig(BaseModel):  # pylint: disable=too-few-public-methods
     sst: int = Field(ge=1, le=4)
     tac: int = Field(ge=1, le=16777215)
 
-    @field_validator("f1_ip_address", "n2_ip_address", "n3_ip_address", mode="before")
+    @field_validator("f1_ip_address", "n3_ip_address", mode="before")
     @classmethod
     def validate_ip_network_address(cls, value: str, info: ValidationInfo) -> str:
         """Validate that IP network address is valid."""
@@ -85,7 +84,6 @@ class CharmConfig:
         f1_ip_address: IP address used by f1 interface
         f1_port: Number of the port used for F1 traffic
         n2_interface_name: Name of the network interface used for N2 traffic
-        n2_ip_address: IP address used by n2 interface
         n3_interface_name: Name of the network interface used for N3 traffic
         n3_ip_address: IP address used by n3 interface
         upf_subnet: Subnet for UPF n3 interface
@@ -101,7 +99,6 @@ class CharmConfig:
     f1_ip_address: str
     f1_port: int
     n2_interface_name: StrictStr
-    n2_ip_address: str
     n3_interface_name: StrictStr
     n3_ip_address: str
     upf_subnet: IPvAnyNetwork
@@ -121,8 +118,7 @@ class CharmConfig:
         self.f1_interface_name = cu_config.f1_interface_name
         self.f1_ip_address = cu_config.f1_ip_address
         self.f1_port = cu_config.f1_port
-        self.n2_interface_name = cu_config.n2_interface_name
-        self.n2_ip_address = cu_config.n2_ip_address
+        self.n2_interface_name = "eth0"
         self.n3_interface_name = cu_config.n3_interface_name
         self.n3_ip_address = cu_config.n3_ip_address
         self.upf_subnet = cu_config.upf_subnet
