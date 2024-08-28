@@ -55,14 +55,27 @@ class TestCharmCollectStatus(CUCharmFixtures):
         )
 
     def test_given_n2_relation_not_created_when_collect_unit_status_then_status_is_blocked(self):
-        state_in = scenario.State(
-            leader=True,
-            config={},
-        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+            config_mount = scenario.Mount(
+                src=temp_dir,
+                location="/tmp/conf",
+            )
+            container = scenario.Container(
+                name="cu",
+                can_connect=True,
+                mounts={"config": config_mount},
+            )
+            state_in = scenario.State(
+                leader=True,
+                config={},
+                containers=[container],
+            )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run("collect_unit_status", state_in)
 
-        assert state_out.unit_status == BlockedStatus("Waiting for N2 relation to be created")
+            assert state_out.unit_status == BlockedStatus("Waiting for N2 relation to be created")
 
     def test_given_workload_container_cant_be_connected_to_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self,

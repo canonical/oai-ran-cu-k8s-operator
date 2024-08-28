@@ -140,10 +140,6 @@ class OAIRANCUOperator(CharmBase):
             event.add_status(WaitingStatus("Waiting for Multus to be ready"))
             logger.info("Waiting for Multus to be ready")
             return
-        if not self._relation_created(N2_RELATION_NAME):
-            event.add_status(BlockedStatus("Waiting for N2 relation to be created"))
-            logger.info("Waiting for N2 relation to be created")
-            return
         if not self._container.can_connect():
             event.add_status(WaitingStatus("Waiting for container to be ready"))
             logger.info("Waiting for container to be ready")
@@ -161,6 +157,10 @@ class OAIRANCUOperator(CharmBase):
             event.add_status(WaitingStatus("Waiting for storage to be attached"))
             logger.info("Waiting for storage to be attached")
             return
+        if not self._relation_created(N2_RELATION_NAME):
+            event.add_status(BlockedStatus("Waiting for N2 relation to be created"))
+            logger.info("Waiting for N2 relation to be created")
+            return
         if not self._n2_requirer.amf_hostname:
             event.add_status(WaitingStatus("Waiting for N2 information"))
             logger.info("Waiting for N2 information")
@@ -177,27 +177,26 @@ class OAIRANCUOperator(CharmBase):
         self.on.nad_config_changed.emit()
         if not self._kubernetes_multus.is_ready():
             return
-        if not self._relation_created(N2_RELATION_NAME):
-            return
         if not self._container.can_connect():
             return
         if not self._container.exists(path=BASE_CONFIG_PATH):
             return
         if not _get_pod_ip():
             return
-        if not self._n2_requirer.amf_hostname:
-            return
-
         if not self._k8s_privileged.is_patched(container_name=self._container_name):
             self._k8s_privileged.patch_statefulset(container_name=self._container_name)
+        self._update_fiveg_f1_relation_data()
+        self._update_fiveg_gnb_identity_relation_data()
+
+        if not self._relation_created(N2_RELATION_NAME):
+            return
+        if not self._n2_requirer.amf_hostname:
+            return
         cu_config = self._generate_cu_config()
         if config_update_required := not self._is_cu_config_up_to_date(cu_config):
             self._write_config_file(content=cu_config)
         service_restart_required = config_update_required
         self._configure_pebble(restart=service_restart_required)
-
-        self._update_fiveg_f1_relation_data()
-        self._update_fiveg_gnb_identity_relation_data()
 
     def _relation_created(self, relation_name: str) -> bool:
         """Return whether a given Juju relation was created.
