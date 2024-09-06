@@ -28,8 +28,7 @@ from jinja2 import Environment, FileSystemLoader
 from lightkube.models.core_v1 import ServicePort
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus
-from ops.charm import CharmBase, CharmEvents
-from ops.framework import EventBase, EventSource
+from ops.charm import CharmBase
 from ops.main import main
 from ops.pebble import Layer
 
@@ -48,20 +47,8 @@ WORKLOAD_VERSION_FILE_NAME = "/etc/workload-version"
 LOGGING_RELATION_NAME = "logging"
 
 
-class NadConfigChangedEvent(EventBase):
-    """Event triggered when an existing network attachment definition is changed."""
-
-
-class KubernetesMultusCharmEvents(CharmEvents):
-    """Kubernetes Multus Charm Events."""
-
-    nad_config_changed = EventSource(NadConfigChangedEvent)
-
-
 class OAIRANCUOperator(CharmBase):
     """Main class to describe Juju event handling for the OAI RAN CU operator for K8s."""
-
-    on = KubernetesMultusCharmEvents()  # type: ignore
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -82,12 +69,13 @@ class OAIRANCUOperator(CharmBase):
         except CharmConfigInvalidError:
             return
         self._kubernetes_multus = KubernetesMultusCharmLib(
-            charm=self,
-            container_name=self._container_name,
             cap_net_admin=True,
-            network_annotations_func=self._generate_network_annotations,
-            network_attachment_definitions_func=self._network_attachment_definitions_from_config,
-            refresh_event=self.on.nad_config_changed,
+            namespace=self.model.name,
+            statefulset_name=self.model.app.name,
+            pod_name="-".join(self.model.unit.name.rsplit("/", 1)),
+            container_name=self._container_name,
+            network_annotations=self._generate_network_annotations(),
+            network_attachment_definitions=self._network_attachment_definitions_from_config(),
             privileged=True,
         )
         self._service_patcher = KubernetesServicePatch(
@@ -110,6 +98,7 @@ class OAIRANCUOperator(CharmBase):
             self._gnb_identity_provider.on.fiveg_gnb_identity_request,
             self._configure,
         )
+        self.framework.observe(self.on.remove, self._on_remove)
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):  # noqa C901
         """Check the unit status and set to Unit when CollectStatusEvent is fired.
@@ -174,7 +163,7 @@ class OAIRANCUOperator(CharmBase):
             return
         if not self._kubernetes_multus.multus_is_available():
             return
-        self.on.nad_config_changed.emit()
+        self._kubernetes_multus.configure()
         if not self._kubernetes_multus.is_ready():
             return
         if not self._container.can_connect():
@@ -197,6 +186,12 @@ class OAIRANCUOperator(CharmBase):
             self._write_config_file(content=cu_config)
         service_restart_required = config_update_required
         self._configure_pebble(restart=service_restart_required)
+
+    def _on_remove(self, _) -> None:
+        """Handle the remove event."""
+        if not self.unit.is_leader():
+            return
+        self._kubernetes_multus.remove()
 
     def _relation_created(self, relation_name: str) -> bool:
         """Return whether a given Juju relation was created.
