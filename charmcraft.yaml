@@ -60,24 +60,24 @@ config:
       default: "f1"
       description: |
         Host interface to use for the F1 communication with the DU.
-        With the `macvlan` cni, the corresponding macvlan interface needs to exist on the host.
+        With the `macvlan` CNI, the corresponding macvlan interface needs to exist on the host.
     f1-ip-address:
       type: string
       default: "192.168.251.7/24"
       description: CU F1 interface IP Address
     f1-port:
       type: int
-      default: 2153
+      default: 2152
       description: Number of the port handling communication over the F1 interface.
     n3-interface-name:
       type: string
       default: "n3"
       description: | 
         Host interface to use for the N3 communication with the UPF.
-        With the `macvlan` cni, the corresponding macvlan interface needs to exist on the host.
+        With the `macvlan` CNI, the corresponding macvlan interface needs to exist on the host.
     n3-ip-address:
       type: string
-      default: "192.168.251.6/24"
+      default: "192.168.250.6/24"
       description: CU N3 interface IP Address in CIDR format
     n3-gateway-ip:
       type: string

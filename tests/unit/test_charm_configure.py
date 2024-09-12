@@ -4,6 +4,7 @@
 
 import os
 import tempfile
+from ipaddress import ip_network
 
 import scenario
 from ops.pebble import Layer
@@ -33,6 +34,13 @@ class TestCharmConfigure(CUCharmFixtures):
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 leader=True,
@@ -67,6 +75,13 @@ class TestCharmConfigure(CUCharmFixtures):
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 leader=True,
@@ -101,6 +116,13 @@ class TestCharmConfigure(CUCharmFixtures):
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 model=scenario.Model(name="whatever"),
@@ -140,6 +162,13 @@ class TestCharmConfigure(CUCharmFixtures):
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 model=scenario.Model(name="whatever"),
@@ -182,6 +211,13 @@ class TestCharmConfigure(CUCharmFixtures):
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 model=scenario.Model(name="whatever"),
@@ -232,6 +268,13 @@ class TestCharmConfigure(CUCharmFixtures):
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 model=scenario.Model(name="whatever"),
@@ -275,6 +318,13 @@ class TestCharmConfigure(CUCharmFixtures):
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 model=scenario.Model(name="whatever"),
@@ -289,12 +339,176 @@ class TestCharmConfigure(CUCharmFixtures):
 
             self.mock_f1_set_information.assert_called_once_with(
                 ip_address="192.168.251.7",
-                port=2153,
+                port=2152,
             )
 
     def test_given_charm_is_active_when_config_changed_then_updated_f1_interface_ip_and_port_is_published(  # noqa: E501
         self,
     ):
+        test_f1_ip_address = "10.3.5.1/24"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n2_relation = scenario.Relation(
+                endpoint="fiveg_n2",
+                interface="fiveg_n2",
+                remote_app_data={
+                    "amf_hostname": "amf",
+                    "amf_port": "38412",
+                    "amf_ip_address": "1.2.3.4",
+                },
+            )
+            f1_relation = scenario.Relation(
+                endpoint="fiveg_f1",
+                interface="fiveg_f1",
+            )
+            config_mount = scenario.Mount(
+                location="/tmp/conf",
+                src=tmpdir,
+            )
+            container = scenario.Container(
+                name="cu",
+                mounts={"config": config_mount},
+                can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                    ("ip", "route", "show"): scenario.ExecOutput(  # noqa: F601
+                        return_code=0,
+                        stdout=f"{ip_network(test_f1_ip_address, strict=False)} dev f1 scope link",
+                        stderr="",
+                    ),
+                },
+            )
+            state_in = scenario.State(
+                model=scenario.Model(name="whatever"),
+                config={"f1-ip-address": test_f1_ip_address, "f1-port": 3522},
+                leader=True,
+                containers=[container],
+                relations=[n2_relation, f1_relation],
+            )
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+
+            self.ctx.run("config_changed", state_in)
+
+            self.mock_f1_set_information.assert_called_with(
+                ip_address=test_f1_ip_address.split("/")[0],
+                port=3522,
+            )
+
+    def test_given_f1_route_not_created_when_config_changed_then_f1_route_is_created(self, caplog):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n2_relation = scenario.Relation(
+                endpoint="fiveg_n2",
+                interface="fiveg_n2",
+                remote_app_data={
+                    "amf_hostname": "amf",
+                    "amf_port": "38412",
+                    "amf_ip_address": "1.2.3.4",
+                },
+            )
+            f1_relation = scenario.Relation(
+                endpoint="fiveg_f1",
+                interface="fiveg_f1",
+            )
+            config_mount = scenario.Mount(
+                location="/tmp/conf",
+                src=tmpdir,
+            )
+            container = scenario.Container(
+                name="cu",
+                mounts={"config": config_mount},
+                can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="",
+                        stderr="",
+                    ),
+                    (
+                        "ip",
+                        "route",
+                        "replace",
+                        "192.168.251.0/24",
+                        "dev",
+                        "f1",
+                    ): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="",
+                        stderr="",
+                    ),
+                },
+            )
+            state_in = scenario.State(
+                model=scenario.Model(name="whatever"),
+                leader=True,
+                containers=[container],
+                relations=[n2_relation, f1_relation],
+            )
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+
+            self.ctx.run("config_changed", state_in)
+
+            # When scenario 7 is out, we should assert that the mock exec was called
+            # instead of validating log content
+            # Reference: https://github.com/canonical/ops-scenario/issues/180
+            assert "F1 route created" in caplog.text
+
+    def test_given_f1_route_created_when_config_changed_then_f1_route_is_not_created(self, caplog):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n2_relation = scenario.Relation(
+                endpoint="fiveg_n2",
+                interface="fiveg_n2",
+                remote_app_data={
+                    "amf_hostname": "amf",
+                    "amf_port": "38412",
+                    "amf_ip_address": "1.2.3.4",
+                },
+            )
+            f1_relation = scenario.Relation(
+                endpoint="fiveg_f1",
+                interface="fiveg_f1",
+            )
+            config_mount = scenario.Mount(
+                location="/tmp/conf",
+                src=tmpdir,
+            )
+            container = scenario.Container(
+                name="cu",
+                mounts={"config": config_mount},
+                can_connect=True,
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
+            )
+            state_in = scenario.State(
+                model=scenario.Model(name="whatever"),
+                leader=True,
+                containers=[container],
+                relations=[n2_relation, f1_relation],
+            )
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+
+            self.ctx.run("config_changed", state_in)
+
+            # When scenario 7 is out, we should assert that the mock exec was called
+            # instead of validating log content
+            # Reference: https://github.com/canonical/ops-scenario/issues/180
+            assert "F1 route created" not in caplog.text
+
+    def test_given_cni_type_is_macvlan_when_config_changed_then_f1_route_is_not_created(self):
+        from unittest.mock import patch
+
+        patcher_exec = patch("ops.model.Container.exec")
+        mock_exec = patcher_exec.start()
         with tempfile.TemporaryDirectory() as tmpdir:
             n2_relation = scenario.Relation(
                 endpoint="fiveg_n2",
@@ -320,8 +534,8 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             state_in = scenario.State(
                 model=scenario.Model(name="whatever"),
-                config={"f1-ip-address": "10.3.5.1/24", "f1-port": 3522},
                 leader=True,
+                config={"cni-type": "macvlan"},
                 containers=[container],
                 relations=[n2_relation, f1_relation],
             )
@@ -330,4 +544,4 @@ class TestCharmConfigure(CUCharmFixtures):
 
             self.ctx.run("config_changed", state_in)
 
-            self.mock_f1_set_information.assert_called_with(ip_address="10.3.5.1", port=3522)
+            mock_exec.assert_not_called()

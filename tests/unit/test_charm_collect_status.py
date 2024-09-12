@@ -165,6 +165,43 @@ class TestCharmCollectStatus(CUCharmFixtures):
 
             assert state_out.unit_status == WaitingStatus("Waiting for N2 information")
 
+    def test_given_f1_route_is_missing_when_collect_unit_status_then_status_is_waiting(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            n2_relation = scenario.Relation(
+                endpoint="fiveg_n2",
+                interface="fiveg_n2",
+                remote_app_data={
+                    "amf_hostname": "amf",
+                    "amf_port": "38412",
+                    "amf_ip_address": "1.2.3.4",
+                },
+            )
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+            config_mount = scenario.Mount(
+                src=temp_dir,
+                location="/tmp/conf",
+            )
+            container = scenario.Container(
+                name="cu",
+                can_connect=True,
+                mounts={"config": config_mount},
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="",
+                        stderr="",
+                    ),
+                },
+            )
+            state_in = scenario.State(
+                leader=True, config={}, relations=[n2_relation], containers=[container]
+            )
+
+            state_out = self.ctx.run("collect_unit_status", state_in)
+
+            assert state_out.unit_status == WaitingStatus("Waiting for the F1 route to be created")
+
     def test_given_all_status_check_are_ok_when_collect_unit_status_then_status_is_active(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             n2_relation = scenario.Relation(
@@ -186,6 +223,13 @@ class TestCharmCollectStatus(CUCharmFixtures):
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
+                exec_mock={
+                    ("ip", "route", "show"): scenario.ExecOutput(
+                        return_code=0,
+                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stderr="",
+                    ),
+                },
             )
             state_in = scenario.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
