@@ -54,13 +54,12 @@ class CUConfig(BaseModel):  # pylint: disable=too-few-public-methods
     model_config = ConfigDict(alias_generator=to_kebab, use_enum_values=True)
     cni_type: CNIType = CNIType.bridge
     f1_interface_name: StrictStr = Field(default="f1", min_length=1)
-    f1_ip_address: str = Field(default="192.168.251.7/24")
+    f1_ip_address: str = Field(default="192.168.254.7/24")
     f1_port: int = Field(ge=1, le=65535)
-    n2_interface_name: StrictStr = Field(default="eth0", min_length=1)
     n3_interface_name: StrictStr = Field(default="n3", min_length=1)
     n3_ip_address: str = Field(default="192.168.251.6/24")
-    n3_gateway_ip: IPv4Address = Field(default=None)
-    upf_subnet: IPvAnyNetwork = Field(default=None)
+    n3_gateway_ip: IPv4Address = Field(default="192.168.251.1")
+    upf_subnet: IPvAnyNetwork = Field(default="192.168.252.0/24")
     mcc: StrictStr = Field(pattern=r"^\d{3}$")
     mnc: StrictStr = Field(pattern=r"^\d{2}$")
     sst: int = Field(ge=1, le=4)
@@ -83,7 +82,6 @@ class CharmConfig:
         f1_interface_name: Name of the network interface used for F1 traffic
         f1_ip_address: IP address used by f1 interface
         f1_port: Number of the port used for F1 traffic
-        n2_interface_name: Name of the network interface used for N2 traffic
         n3_interface_name: Name of the network interface used for N3 traffic
         n3_ip_address: IP address used by n3 interface
         upf_subnet: Subnet for UPF n3 interface
@@ -98,7 +96,6 @@ class CharmConfig:
     f1_interface_name: StrictStr
     f1_ip_address: str
     f1_port: int
-    n2_interface_name: StrictStr
     n3_interface_name: StrictStr
     n3_ip_address: str
     upf_subnet: IPvAnyNetwork
@@ -118,7 +115,6 @@ class CharmConfig:
         self.f1_interface_name = cu_config.f1_interface_name
         self.f1_ip_address = cu_config.f1_ip_address
         self.f1_port = cu_config.f1_port
-        self.n2_interface_name = "eth0"
         self.n3_interface_name = cu_config.n3_interface_name
         self.n3_ip_address = cu_config.n3_ip_address
         self.upf_subnet = cu_config.upf_subnet

@@ -4,7 +4,6 @@
 
 import os
 import tempfile
-from ipaddress import ip_network
 
 import scenario
 from ops.pebble import Layer
@@ -37,7 +36,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -78,7 +77,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -119,7 +118,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -165,7 +164,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -214,7 +213,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -271,7 +270,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -321,7 +320,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -338,7 +337,7 @@ class TestCharmConfigure(CUCharmFixtures):
             self.ctx.run("config_changed", state_in)
 
             self.mock_f1_set_information.assert_called_once_with(
-                ip_address="192.168.251.7",
+                ip_address="192.168.254.7",
                 port=2152,
             )
 
@@ -371,12 +370,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
-                        stderr="",
-                    ),
-                    ("ip", "route", "show"): scenario.ExecOutput(  # noqa: F601
-                        return_code=0,
-                        stdout=f"{ip_network(test_f1_ip_address, strict=False)} dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -398,7 +392,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 port=3522,
             )
 
-    def test_given_f1_route_not_created_when_config_changed_then_f1_route_is_created(self, caplog):
+    def test_given_n3_route_not_created_when_config_changed_then_n3_route_is_created(self, caplog):
         with tempfile.TemporaryDirectory() as tmpdir:
             n2_relation = scenario.Relation(
                 endpoint="fiveg_n2",
@@ -431,9 +425,9 @@ class TestCharmConfigure(CUCharmFixtures):
                         "ip",
                         "route",
                         "replace",
-                        "192.168.251.0/24",
-                        "dev",
-                        "f1",
+                        "192.168.252.0/24",
+                        "via",
+                        "192.168.251.1",
                     ): scenario.ExecOutput(
                         return_code=0,
                         stdout="",
@@ -455,9 +449,9 @@ class TestCharmConfigure(CUCharmFixtures):
             # When scenario 7 is out, we should assert that the mock exec was called
             # instead of validating log content
             # Reference: https://github.com/canonical/ops-scenario/issues/180
-            assert "F1 route created" in caplog.text
+            assert "N3 route created" in caplog.text
 
-    def test_given_f1_route_created_when_config_changed_then_f1_route_is_not_created(self, caplog):
+    def test_given_n3_route_created_when_config_changed_then_n3_route_is_not_created(self, caplog):
         with tempfile.TemporaryDirectory() as tmpdir:
             n2_relation = scenario.Relation(
                 endpoint="fiveg_n2",
@@ -483,7 +477,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },
@@ -502,46 +496,4 @@ class TestCharmConfigure(CUCharmFixtures):
             # When scenario 7 is out, we should assert that the mock exec was called
             # instead of validating log content
             # Reference: https://github.com/canonical/ops-scenario/issues/180
-            assert "F1 route created" not in caplog.text
-
-    def test_given_cni_type_is_macvlan_when_config_changed_then_f1_route_is_not_created(self):
-        from unittest.mock import patch
-
-        patcher_exec = patch("ops.model.Container.exec")
-        mock_exec = patcher_exec.start()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
-                endpoint="fiveg_n2",
-                interface="fiveg_n2",
-                remote_app_data={
-                    "amf_hostname": "amf",
-                    "amf_port": "38412",
-                    "amf_ip_address": "1.2.3.4",
-                },
-            )
-            f1_relation = scenario.Relation(
-                endpoint="fiveg_f1",
-                interface="fiveg_f1",
-            )
-            config_mount = scenario.Mount(
-                location="/tmp/conf",
-                src=tmpdir,
-            )
-            container = scenario.Container(
-                name="cu",
-                mounts={"config": config_mount},
-                can_connect=True,
-            )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
-                leader=True,
-                config={"cni-type": "macvlan"},
-                containers=[container],
-                relations=[n2_relation, f1_relation],
-            )
-            self.mock_k8s_privileged.is_patched.return_value = True
-            self.mock_check_output.return_value = b"1.1.1.1"
-
-            self.ctx.run("config_changed", state_in)
-
-            mock_exec.assert_not_called()
+            assert "N3 route created" not in caplog.text

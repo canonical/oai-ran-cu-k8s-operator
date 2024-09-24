@@ -63,7 +63,7 @@ config:
         With the `macvlan` CNI, the corresponding macvlan interface needs to exist on the host.
     f1-ip-address:
       type: string
-      default: "192.168.251.7/24"
+      default: "192.168.254.7/24"
       description: CU F1 interface IP Address
     f1-port:
       type: int
@@ -77,15 +77,17 @@ config:
         With the `macvlan` CNI, the corresponding macvlan interface needs to exist on the host.
     n3-ip-address:
       type: string
-      default: "192.168.250.6/24"
+      default: "192.168.251.6/24"
       description: CU N3 interface IP Address in CIDR format
     n3-gateway-ip:
       type: string
+      default: "192.168.251.1"
       description: |
-        Gateway IP to the UPF's N3 interface. This should be provided if a route is required to UPF's N3 interface.
+        IP address of the Gateway towards the UPF.
     upf-subnet:
       type: string
-      description: UPF's N3 interface subnet. This should be provided if a route is required to UPF's N3 interface.
+      default: "192.168.252.0/24"
+      description: UPF's N3 interface subnet.
     mcc:
       type: string
       default: "001"

@@ -165,7 +165,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
 
             assert state_out.unit_status == WaitingStatus("Waiting for N2 information")
 
-    def test_given_f1_route_is_missing_when_collect_unit_status_then_status_is_waiting(self):
+    def test_given_n3_route_is_missing_when_collect_unit_status_then_status_is_waiting(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             n2_relation = scenario.Relation(
                 endpoint="fiveg_n2",
@@ -200,7 +200,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
 
             state_out = self.ctx.run("collect_unit_status", state_in)
 
-            assert state_out.unit_status == WaitingStatus("Waiting for the F1 route to be created")
+            assert state_out.unit_status == WaitingStatus("Waiting for the N3 route to be created")
 
     def test_given_all_status_check_are_ok_when_collect_unit_status_then_status_is_active(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -226,7 +226,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
                 exec_mock={
                     ("ip", "route", "show"): scenario.ExecOutput(
                         return_code=0,
-                        stdout="192.168.251.0/24 dev f1 scope link",
+                        stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     ),
                 },

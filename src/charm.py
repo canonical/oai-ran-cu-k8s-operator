@@ -6,7 +6,7 @@
 
 import json
 import logging
-from ipaddress import IPv4Address, ip_network
+from ipaddress import IPv4Address
 from subprocess import check_output
 from typing import List, Optional, Tuple
 
@@ -154,9 +154,9 @@ class OAIRANCUOperator(CharmBase):
             event.add_status(WaitingStatus("Waiting for N2 information"))
             logger.info("Waiting for N2 information")
             return
-        if self._charm_config.cni_type == CNIType.bridge and not self._f1_route_exists():
-            event.add_status(WaitingStatus("Waiting for the F1 route to be created"))
-            logger.info("Waiting for the F1 route to be created")
+        if not self._n3_route_exists():
+            event.add_status(WaitingStatus("Waiting for the N3 route to be created"))
+            logger.info("Waiting for the N3 route to be created")
             return
         event.add_status(ActiveStatus())
 
@@ -178,8 +178,8 @@ class OAIRANCUOperator(CharmBase):
             return
         if not self._k8s_privileged.is_patched(container_name=self._container_name):
             self._k8s_privileged.patch_statefulset(container_name=self._container_name)
-        if self._charm_config.cni_type == CNIType.bridge and not self._f1_route_exists():
-            self._create_f1_route()
+        if not self._n3_route_exists():
+            self._create_n3_route()
         self._update_fiveg_f1_relation_data()
         self._update_fiveg_gnb_identity_relation_data()
 
@@ -199,30 +199,28 @@ class OAIRANCUOperator(CharmBase):
             return
         self._kubernetes_multus.remove()
 
-    def _f1_route_exists(self) -> bool:
+    def _n3_route_exists(self) -> bool:
         """Return whether the specified route exist."""
         try:
             stdout, stderr = self._exec_command_in_workload_container(command="ip route show")
         except ExecError as e:
             logger.error("Failed retrieving routes: %s", e.stderr)
             return False
-        f1_subnet = ip_network(self._charm_config.f1_ip_address, strict=False)
         for line in stdout.splitlines():
-            if f"{f1_subnet} dev {self._charm_config.f1_interface_name}" in line:
+            if f"{self._charm_config.upf_subnet} via {self._charm_config.n3_gateway_ip}" in line:
                 return True
         return False
 
-    def _create_f1_route(self) -> None:
-        """Create ip route for the F1 connectivity."""
+    def _create_n3_route(self) -> None:
+        """Create ip route for the N3 connectivity."""
         try:
-            f1_subnet = ip_network(self._charm_config.f1_ip_address, strict=False)
             self._exec_command_in_workload_container(
-                command=f"ip route replace {f1_subnet} dev {self._charm_config.f1_interface_name}"
+                command=f"ip route replace {self._charm_config.upf_subnet} via {self._charm_config.n3_gateway_ip}"  # noqa: E501
             )
         except ExecError as e:
-            logger.error("Failed to create F1 route: %s", e.stderr)
+            logger.error("Failed to create N3 route: %s", e.stderr)
             return
-        logger.info("F1 route created")
+        logger.info("N3 route created")
 
     def _relation_created(self, relation_name: str) -> bool:
         """Return whether a given Juju relation was created.
@@ -259,7 +257,6 @@ class OAIRANCUOperator(CharmBase):
             cu_f1_ip_address=str(self._charm_config.f1_ip_address).split("/")[0],
             cu_f1_port=self._charm_config.f1_port,
             du_f1_port=du_f1_port,
-            cu_n2_interface_name=self._charm_config.n2_interface_name,
             cu_n2_ip_address=n2_ip_address,
             cu_n3_interface_name=self._charm_config.n3_interface_name,
             cu_n3_ip_address=str(self._charm_config.n3_ip_address).split("/")[0],
@@ -278,11 +275,11 @@ class OAIRANCUOperator(CharmBase):
         """
         return [
             NetworkAnnotation(
-                name=f"{self._charm_config.n3_interface_name}-net",
+                name=f"{self.app.name}-{self._charm_config.n3_interface_name}-net",
                 interface=self._charm_config.n3_interface_name,
             ),
             NetworkAnnotation(
-                name=f"{self._charm_config.f1_interface_name}-net",
+                name=f"{self.app.name}-{self._charm_config.f1_interface_name}-net",
                 interface=self._charm_config.f1_interface_name,
             ),
         ]
@@ -304,21 +301,10 @@ class OAIRANCUOperator(CharmBase):
 
     def _get_n3_nad_config(self) -> dict:
         n3_nad_config = self._get_base_config(self._charm_config.n3_ip_address)
-        if self._charm_config.upf_subnet and self._charm_config.n3_gateway_ip:
-            n3_nad_config.update(
-                {
-                    "routes": [
-                        {
-                            "dst": str(self._charm_config.upf_subnet),
-                            "gw": str(self._charm_config.n3_gateway_ip),
-                        },
-                    ],
-                }
-            )
         return self._add_cni_type_to_nad_config(
             n3_nad_config,
             self._charm_config.n3_interface_name,
-            "n3-br",
+            f"{self._charm_config.n3_interface_name}-br",
         )
 
     def _get_f1_nad_config(self) -> dict:
@@ -326,7 +312,7 @@ class OAIRANCUOperator(CharmBase):
         return self._add_cni_type_to_nad_config(
             f1_nad_config,
             self._charm_config.f1_interface_name,
-            "f1-br",
+            f"{self._charm_config.f1_interface_name}-br",
         )
 
     def _add_cni_type_to_nad_config(
@@ -347,11 +333,15 @@ class OAIRANCUOperator(CharmBase):
         """Return list of Multus NetworkAttachmentDefinitions to be created based on config."""
         return [
             NetworkAttachmentDefinition(
-                metadata=ObjectMeta(name=f"{self._charm_config.n3_interface_name}-net"),
+                metadata=ObjectMeta(
+                    name=f"{self.app.name}-{self._charm_config.n3_interface_name}-net"
+                ),
                 spec={"config": json.dumps(self._get_n3_nad_config())},
             ),
             NetworkAttachmentDefinition(
-                metadata=ObjectMeta(name=f"{self._charm_config.f1_interface_name}-net"),
+                metadata=ObjectMeta(
+                    name=f"{self.app.name}-{self._charm_config.f1_interface_name}-net"
+                ),
                 spec={"config": json.dumps(self._get_f1_nad_config())},
             ),
         ]
@@ -509,7 +499,6 @@ def _render_config_file(
     cu_f1_ip_address: str,
     cu_f1_port: int,
     du_f1_port: int,
-    cu_n2_interface_name: str,
     cu_n2_ip_address: str,
     cu_n3_interface_name: str,
     cu_n3_ip_address: str,
@@ -527,7 +516,6 @@ def _render_config_file(
         cu_f1_ip_address: IPv4 address of the network interface used for F1 traffic
         cu_f1_port: Number of the port used by the CU for F1 traffic
         du_f1_port: Number of the port used by the DU for F1 traffic
-        cu_n2_interface_name: Name of the network interface used for N2 traffic
         cu_n2_ip_address: IPv4 address of the network interface used for N2 traffic
         cu_n3_interface_name: Name of the network interface used for N3 traffic
         cu_n3_ip_address: IPv4 address of the network interface used for N3 traffic
@@ -548,7 +536,6 @@ def _render_config_file(
         cu_f1_ip_address=cu_f1_ip_address,
         cu_f1_port=cu_f1_port,
         du_f1_port=du_f1_port,
-        cu_n2_interface_name=cu_n2_interface_name,
         cu_n2_ip_address=cu_n2_ip_address,
         cu_n3_interface_name=cu_n3_interface_name,
         cu_n3_ip_address=cu_n3_ip_address,
