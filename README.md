@@ -21,7 +21,7 @@ Deploy the charm.
 ```bash
 juju deploy oai-ran-cu-k8s --trust --channel=2.1/edge
 juju deploy sdcore-amf-k8s --trust --channel=1.5/edge
-juju integrate oai-ran-cu-k8s:fiveg_n2 sdcore-amf-k8s:fiveg_n2
+juju integrate oai-ran-cu-k8s:fiveg_n2 sdcore-amf-k8s:fiveg-n2
 ```
 
 ## Image
