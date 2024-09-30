@@ -48,7 +48,7 @@ class TestFivegF1Requires:
             leader=True,
         )
 
-        self.ctx.run(fiveg_f1_relation.changed_event, state_in)
+        self.ctx.run(self.ctx.on.relation_changed(fiveg_f1_relation), state_in)
 
         assert len(self.ctx.emitted_events) == 2
         assert isinstance(self.ctx.emitted_events[1], FivegF1ProviderAvailableEvent)
@@ -66,17 +66,14 @@ class TestFivegF1Requires:
             relations=[fiveg_f1_relation],
             leader=True,
         )
+        params = {
+            "port": "1234",
+        }
 
-        action = scenario.Action(
-            name="set-f1-information",
-            params={
-                "port": "1234",
-            },
-        )
+        state_out = self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
 
-        action_output = self.ctx.run_action(action, state_in)
-
-        assert action_output.state.relations[0].local_app_data["f1_port"] == "1234"
+        relation = state_out.get_relation(fiveg_f1_relation.id)
+        assert relation.local_app_data["f1_port"] == "1234"
 
     def test_given_invalid_f1_port_when_fiveg_f1_provider_available_then_error_is_raised(self):
         fiveg_f1_relation = scenario.Relation(
@@ -87,15 +84,11 @@ class TestFivegF1Requires:
             relations=[fiveg_f1_relation],
             leader=True,
         )
-
-        action = scenario.Action(
-            name="set-f1-information",
-            params={
-                "port": "Not a valid port",
-            },
-        )
+        params = {
+            "port": "Not a valid port",
+        }
 
         with pytest.raises(Exception) as e:
-            self.ctx.run_action(action, state_in)
+            self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
 
         assert "Invalid relation data" in str(e.value)

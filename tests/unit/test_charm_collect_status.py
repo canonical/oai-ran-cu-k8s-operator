@@ -15,7 +15,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
     def test_given_unit_is_not_leader_when_collect_unit_status_then_status_is_blocked(self):
         state_in = scenario.State(leader=False)
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == BlockedStatus("Scaling is not implemented for this charm")
 
@@ -45,7 +45,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             },
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == BlockedStatus(
             f"The following configurations are not valid: ['{config_param}']"
@@ -56,7 +56,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -70,7 +70,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
                 containers=[container],
             )
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == BlockedStatus("Waiting for N2 relation to be created")
 
@@ -86,7 +86,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for container to be ready")
 
@@ -103,7 +103,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for Pod IP address to be available")
 
@@ -121,7 +121,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for statefulset to be patched")
 
@@ -137,7 +137,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for storage to be attached")
 
@@ -149,7 +149,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -161,7 +161,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == WaitingStatus("Waiting for N2 information")
 
@@ -179,26 +179,26 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == WaitingStatus("Waiting for the N3 route to be created")
 
@@ -216,26 +216,26 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == ActiveStatus()
 
@@ -253,7 +253,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -266,7 +266,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             )
             self.mock_k8s_multus.multus_is_available.return_value = False
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == BlockedStatus("Multus is not installed or enabled")
 
@@ -286,7 +286,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -300,6 +300,6 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_multus.multus_is_available.return_value = True
             self.mock_k8s_multus.is_ready.return_value = False
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == WaitingStatus("Waiting for Multus to be ready")

@@ -47,19 +47,16 @@ class TestFivegF1Provides:
             relations=[fiveg_f1_relation],
             leader=True,
         )
+        params = {
+            "ip-address": "1.2.3.4",
+            "port": "1234",
+        }
 
-        action = scenario.Action(
-            name="set-f1-information",
-            params={
-                "ip-address": "1.2.3.4",
-                "port": "1234",
-            },
-        )
+        state_out = self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
 
-        action_output = self.ctx.run_action(action, state_in)
-
-        assert action_output.state.relations[0].local_app_data["f1_ip_address"] == "1.2.3.4"
-        assert action_output.state.relations[0].local_app_data["f1_port"] == "1234"
+        relation = state_out.get_relation(fiveg_f1_relation.id)
+        assert relation.local_app_data["f1_ip_address"] == "1.2.3.4"
+        assert relation.local_app_data["f1_port"] == "1234"
 
     def test_given_invalid_f1_ip_address_when_set_f1_information_then_error_is_raised(self):
         fiveg_f1_relation = scenario.Relation(
@@ -70,17 +67,13 @@ class TestFivegF1Provides:
             relations=[fiveg_f1_relation],
             leader=True,
         )
-
-        action = scenario.Action(
-            name="set-f1-information",
-            params={
-                "ip-address": "1111.1111.1111.1111",
-                "port": "1234",
-            },
-        )
+        params = {
+            "ip-address": "1111.1111.1111.1111",
+            "port": "1234",
+        }
 
         with pytest.raises(Exception) as e:
-            self.ctx.run_action(action, state_in)
+            self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
 
         assert "Invalid relation data" in str(e.value)
 
@@ -93,17 +86,13 @@ class TestFivegF1Provides:
             relations=[fiveg_f1_relation],
             leader=True,
         )
-
-        action = scenario.Action(
-            name="set-f1-information",
-            params={
-                "ip-address": "1.2.3.4",
-                "port": "that's wrong",
-            },
-        )
+        params = {
+            "ip-address": "1.2.3.4",
+            "port": "that's wrong",
+        }
 
         with pytest.raises(Exception) as e:
-            self.ctx.run_action(action, state_in)
+            self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
 
         assert "Invalid relation data" in str(e.value)
 
@@ -115,13 +104,12 @@ class TestFivegF1Provides:
             interface="fiveg_f1",
             remote_app_data={"f1_ip_address": "1.2.3.4", "f1_port": "1234"},
         )
-
         state_in = scenario.State(
             relations=[fiveg_f1_relation],
             leader=True,
         )
 
-        self.ctx.run(fiveg_f1_relation.changed_event, state_in)
+        self.ctx.run(self.ctx.on.relation_changed(fiveg_f1_relation), state_in)
 
         assert len(self.ctx.emitted_events) == 2
         assert isinstance(self.ctx.emitted_events[1], FivegF1RequirerAvailableEvent)

@@ -27,18 +27,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -49,7 +49,7 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = False
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_k8s_privileged.patch_statefulset.assert_called_with(container_name="cu")
 
@@ -68,18 +68,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -90,7 +90,7 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_k8s_privileged.patch_statefulset.assert_not_called()
 
@@ -109,18 +109,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -132,7 +132,7 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             with open("tests/unit/resources/expected_config.conf") as expected_config_file:
                 expected_config = expected_config_file.read()
@@ -155,18 +155,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -183,7 +183,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 cu_conf.write(expected_config.strip())
             config_modification_time = os.stat(tmpdir + "/cu.conf").st_mtime
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             with open(f"{tmpdir}/cu.conf") as cu_conf:
                 assert cu_conf.read().strip() == expected_config.strip()
@@ -204,18 +204,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -227,9 +227,10 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            state_out = self.ctx.run("config_changed", state_in)
+            state_out = self.ctx.run(self.ctx.on.config_changed(), state_in)
 
-            assert state_out.containers[0].layers["cu"] == Layer(
+            container = state_out.get_container("cu")
+            assert container.layers["cu"] == Layer(
                 {
                     "services": {
                         "cu": {
@@ -261,18 +262,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -284,10 +285,10 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_gnb_identity.assert_called_once_with(
-                relation_id=fiveg_gnb_relation.relation_id,
+                relation_id=fiveg_gnb_relation.id,
                 gnb_name="whatever-oai-ran-cu-k8s-cu",
                 tac=1,
             )
@@ -311,18 +312,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -334,7 +335,7 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_f1_set_information.assert_called_once_with(
                 ip_address="192.168.254.7",
@@ -361,18 +362,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -385,14 +386,14 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_f1_set_information.assert_called_with(
                 ip_address=test_f1_ip_address.split("/")[0],
                 port=3522,
             )
 
-    def test_given_n3_route_not_created_when_config_changed_then_n3_route_is_created(self, caplog):
+    def test_given_n3_route_not_created_when_config_changed_then_n3_route_is_created(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             n2_relation = scenario.Relation(
                 endpoint="fiveg_n2",
@@ -409,27 +410,27 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="",
                         stderr="",
                     ),
-                    (
-                        "ip",
-                        "route",
-                        "replace",
-                        "192.168.252.0/24",
-                        "via",
-                        "192.168.251.1",
-                    ): scenario.ExecOutput(
-                        return_code=0,
+                    scenario.Exec(
+                        command_prefix=[
+                            "ip",
+                            "route",
+                            "replace",
+                            "192.168.252.0/24",
+                            "via",
+                            "192.168.251.1",
+                        ],
                         stdout="",
                         stderr="",
                     ),
@@ -444,12 +445,16 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
-            # When scenario 7 is out, we should assert that the mock exec was called
-            # instead of validating log content
-            # Reference: https://github.com/canonical/ops-scenario/issues/180
-            assert "N3 route created" in caplog.text
+            assert self.ctx.exec_history[container.name][1].command == [
+                "ip",
+                "route",
+                "replace",
+                "192.168.252.0/24",
+                "via",
+                "192.168.251.1",
+            ]
 
     def test_given_n3_route_created_when_config_changed_then_n3_route_is_not_created(self, caplog):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -468,18 +473,18 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
-                exec_mock={
-                    ("ip", "route", "show"): scenario.ExecOutput(
-                        return_code=0,
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -491,7 +496,7 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             # When scenario 7 is out, we should assert that the mock exec was called
             # instead of validating log content
