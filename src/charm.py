@@ -27,9 +27,8 @@ from charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity import (
 from jinja2 import Environment, FileSystemLoader
 from lightkube.models.core_v1 import ServicePort
 from lightkube.models.meta_v1 import ObjectMeta
-from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus
+from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus, main
 from ops.charm import CharmBase
-from ops.main import main
 from ops.pebble import ExecError, Layer
 
 from charm_config import CharmConfig, CharmConfigInvalidError, CNIType
