@@ -5,7 +5,7 @@
 import tempfile
 
 import pytest
-import scenario
+from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from tests.unit.fixtures import CUCharmFixtures
@@ -13,7 +13,7 @@ from tests.unit.fixtures import CUCharmFixtures
 
 class TestCharmCollectStatus(CUCharmFixtures):
     def test_given_unit_is_not_leader_when_collect_unit_status_then_status_is_blocked(self):
-        state_in = scenario.State(leader=False)
+        state_in = testing.State(leader=False)
 
         state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
@@ -38,7 +38,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
     def test_given_invalid_config_when_collect_unit_status_then_status_is_blocked(
         self, config_param, value
     ):
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             config={
                 config_param: value,
@@ -55,16 +55,16 @@ class TestCharmCollectStatus(CUCharmFixtures):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 config={},
                 containers=[container],
@@ -77,12 +77,12 @@ class TestCharmCollectStatus(CUCharmFixtures):
     def test_given_workload_container_cant_be_connected_to_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self,
     ):
-        n2_relation = scenario.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
-        container = scenario.Container(
+        n2_relation = testing.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
+        container = testing.Container(
             name="cu",
             can_connect=False,
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
@@ -93,13 +93,13 @@ class TestCharmCollectStatus(CUCharmFixtures):
     def test_given_pod_ip_is_not_available_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self,
     ):
-        n2_relation = scenario.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
-        container = scenario.Container(
+        n2_relation = testing.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
+        container = testing.Container(
             name="cu",
             can_connect=True,
         )
         self.mock_check_output.return_value = b""
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
@@ -110,14 +110,14 @@ class TestCharmCollectStatus(CUCharmFixtures):
     def test_given_charm_statefulset_is_not_patched_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self,
     ):
-        n2_relation = scenario.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
+        n2_relation = testing.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
         self.mock_k8s_privileged.is_patched.return_value = False
         self.mock_check_output.return_value = b"1.1.1.1"
-        container = scenario.Container(
+        container = testing.Container(
             name="cu",
             can_connect=True,
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
@@ -126,14 +126,14 @@ class TestCharmCollectStatus(CUCharmFixtures):
         assert state_out.unit_status == WaitingStatus("Waiting for statefulset to be patched")
 
     def test_give_storage_is_not_attached_when_collect_unit_status_then_status_is_waiting(self):
-        n2_relation = scenario.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
+        n2_relation = testing.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
         self.mock_k8s_privileged.is_patched.return_value = True
         self.mock_check_output.return_value = b"1.1.1.1"
-        container = scenario.Container(
+        container = testing.Container(
             name="cu",
             can_connect=True,
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True, config={}, relations=[n2_relation], containers=[container]
         )
 
@@ -145,19 +145,19 @@ class TestCharmCollectStatus(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
-            n2_relation = scenario.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
+            n2_relation = testing.Relation(endpoint="fiveg_n2", interface="fiveg_n2")
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
 
@@ -167,7 +167,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
 
     def test_given_n3_route_is_missing_when_collect_unit_status_then_status_is_waiting(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -178,23 +178,23 @@ class TestCharmCollectStatus(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
 
@@ -204,7 +204,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
 
     def test_given_all_status_check_are_ok_when_collect_unit_status_then_status_is_active(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -215,23 +215,23 @@ class TestCharmCollectStatus(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
 
@@ -241,7 +241,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
 
     def test_given_multus_disabled_when_collect_status_then_status_is_blocked(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -252,16 +252,16 @@ class TestCharmCollectStatus(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
             self.mock_k8s_multus.multus_is_available.return_value = False
@@ -274,7 +274,7 @@ class TestCharmCollectStatus(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -285,16 +285,16 @@ class TestCharmCollectStatus(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 can_connect=True,
                 mounts={"config": config_mount},
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True, config={}, relations=[n2_relation], containers=[container]
             )
             self.mock_k8s_multus.multus_is_available.return_value = True

@@ -5,7 +5,7 @@
 from unittest.mock import patch
 
 import pytest
-import scenario
+from ops import testing
 
 from charm import OAIRANCUOperator
 
@@ -34,6 +34,6 @@ class CUCharmFixtures:
 
     @pytest.fixture(autouse=True)
     def context(self):
-        self.ctx = scenario.Context(
+        self.ctx = testing.Context(
             charm_type=OAIRANCUOperator,
         )

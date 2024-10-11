@@ -5,7 +5,7 @@
 import os
 import tempfile
 
-import scenario
+from ops import testing
 from ops.pebble import Layer
 
 from tests.unit.fixtures import CUCharmFixtures
@@ -16,7 +16,7 @@ class TestCharmConfigure(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -25,23 +25,23 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 containers=[container],
                 relations=[n2_relation],
@@ -57,7 +57,7 @@ class TestCharmConfigure(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -66,23 +66,23 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 containers=[container],
                 relations=[n2_relation],
@@ -98,7 +98,7 @@ class TestCharmConfigure(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -107,24 +107,24 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
                 relations=[n2_relation],
@@ -144,7 +144,7 @@ class TestCharmConfigure(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -153,24 +153,24 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
                 relations=[n2_relation],
@@ -193,7 +193,7 @@ class TestCharmConfigure(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -202,24 +202,24 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
                 relations=[n2_relation],
@@ -247,7 +247,7 @@ class TestCharmConfigure(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -256,28 +256,28 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            fiveg_gnb_relation = scenario.Relation(
+            fiveg_gnb_relation = testing.Relation(
                 endpoint="fiveg_gnb_identity",
                 interface="fiveg_gnb_identity",
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
                 relations=[n2_relation, fiveg_gnb_relation],
@@ -297,7 +297,7 @@ class TestCharmConfigure(CUCharmFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -306,28 +306,28 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            f1_relation = scenario.Relation(
+            f1_relation = testing.Relation(
                 endpoint="fiveg_f1",
                 interface="fiveg_f1",
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
                 relations=[n2_relation, f1_relation],
@@ -347,7 +347,7 @@ class TestCharmConfigure(CUCharmFixtures):
     ):
         test_f1_ip_address = "10.3.5.1/24"
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -356,28 +356,28 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            f1_relation = scenario.Relation(
+            f1_relation = testing.Relation(
                 endpoint="fiveg_f1",
                 interface="fiveg_f1",
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 config={"f1-ip-address": test_f1_ip_address, "f1-port": 3522},
                 leader=True,
                 containers=[container],
@@ -395,7 +395,7 @@ class TestCharmConfigure(CUCharmFixtures):
 
     def test_given_n3_route_not_created_when_config_changed_then_n3_route_is_created(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -404,25 +404,25 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            f1_relation = scenario.Relation(
+            f1_relation = testing.Relation(
                 endpoint="fiveg_f1",
                 interface="fiveg_f1",
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="",
                         stderr="",
                     ),
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=[
                             "ip",
                             "route",
@@ -436,8 +436,8 @@ class TestCharmConfigure(CUCharmFixtures):
                     ),
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
                 relations=[n2_relation, f1_relation],
@@ -458,7 +458,7 @@ class TestCharmConfigure(CUCharmFixtures):
 
     def test_given_n3_route_created_when_config_changed_then_n3_route_is_not_created(self, caplog):
         with tempfile.TemporaryDirectory() as tmpdir:
-            n2_relation = scenario.Relation(
+            n2_relation = testing.Relation(
                 endpoint="fiveg_n2",
                 interface="fiveg_n2",
                 remote_app_data={
@@ -467,28 +467,28 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            f1_relation = scenario.Relation(
+            f1_relation = testing.Relation(
                 endpoint="fiveg_f1",
                 interface="fiveg_f1",
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="cu",
                 mounts={"config": config_mount},
                 can_connect=True,
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ip", "route", "show"],
                         stdout="192.168.252.0/24 via 192.168.251.1",
                         stderr="",
                     )
                 },
             )
-            state_in = scenario.State(
-                model=scenario.Model(name="whatever"),
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
                 relations=[n2_relation, f1_relation],
@@ -498,7 +498,7 @@ class TestCharmConfigure(CUCharmFixtures):
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
-            # When scenario 7 is out, we should assert that the mock exec was called
+            # When testing 7 is out, we should assert that the mock exec was called
             # instead of validating log content
-            # Reference: https://github.com/canonical/ops-scenario/issues/180
+            # Reference: https://github.com/canonical/ops-testing/issues/180
             assert "N3 route created" not in caplog.text
