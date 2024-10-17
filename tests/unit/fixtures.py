@@ -11,7 +11,6 @@ from charm import OAIRANCUOperator
 
 
 class CUCharmFixtures:
-    patcher_k8s_service_patch = patch("charm.KubernetesServicePatch")
     patcher_check_output = patch("charm.check_output")
     patcher_k8s_privileged = patch("charm.K8sPrivileged")
     patcher_k8s_multus = patch("charm.KubernetesMultusCharmLib")
@@ -20,7 +19,6 @@ class CUCharmFixtures:
 
     @pytest.fixture(autouse=True)
     def setUp(self, request):
-        self.mock_k8s_service_patch = CUCharmFixtures.patcher_k8s_service_patch.start()
         self.mock_gnb_identity = CUCharmFixtures.patcher_gnb_identity.start()
         self.mock_check_output = CUCharmFixtures.patcher_check_output.start()
         self.mock_f1_set_information = CUCharmFixtures.patcher_f1_set_information.start()

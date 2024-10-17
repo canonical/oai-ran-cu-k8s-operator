@@ -17,15 +17,11 @@ from charms.kubernetes_charm_libraries.v0.multus import (
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides
-from charms.observability_libs.v1.kubernetes_service_patch import (
-    KubernetesServicePatch,
-)
 from charms.sdcore_amf_k8s.v0.fiveg_n2 import N2Requires
 from charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity import (
     GnbIdentityProvides,
 )
 from jinja2 import Environment, FileSystemLoader
-from lightkube.models.core_v1 import ServicePort
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus, main
 from ops.charm import CharmBase
@@ -76,14 +72,6 @@ class OAIRANCUOperator(CharmBase):
             network_annotations=self._generate_network_annotations(),
             network_attachment_definitions=self._network_attachment_definitions_from_config(),
             privileged=True,
-        )
-        self._service_patcher = KubernetesServicePatch(
-            charm=self,
-            ports=[
-                ServicePort(name="f1", port=self._charm_config.f1_port, protocol="UDP"),
-                ServicePort(name="n2", port=36412, protocol="SCTP"),
-                ServicePort(name="n3", port=2152, protocol="UDP"),
-            ],
         )
 
         self.framework.observe(self.on.update_status, self._configure)
