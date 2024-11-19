@@ -167,6 +167,9 @@ async def _deploy_nms(ops_test: OpsTest):
     await ops_test.model.integrate(
         relation1=f"{NMS_CHARM_NAME}:auth_database", relation2=f"{DB_CHARM_NAME}"
     )
+    await ops_test.model.integrate(
+        relation1=f"{NMS_CHARM_NAME}:certificates", relation2=f"{TLS_CHARM_NAME}"
+    )
 
 
 async def _deploy_grafana_agent(ops_test: OpsTest):
