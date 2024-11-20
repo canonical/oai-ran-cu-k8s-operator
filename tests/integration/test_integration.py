@@ -168,6 +168,9 @@ async def _deploy_nms(ops_test: OpsTest):
         relation1=f"{NMS_CHARM_NAME}:auth_database", relation2=f"{DB_CHARM_NAME}"
     )
     await ops_test.model.integrate(
+        relation1=f"{NMS_CHARM_NAME}:webui_database", relation2=DB_CHARM_NAME
+    )
+    await ops_test.model.integrate(
         relation1=f"{NMS_CHARM_NAME}:certificates", relation2=f"{TLS_CHARM_NAME}"
     )
 
