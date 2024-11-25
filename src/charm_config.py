@@ -7,7 +7,7 @@
 import dataclasses
 import logging
 from enum import Enum
-from ipaddress import IPv4Address, ip_network
+from ipaddress import IPv4Address, IPv4Network, ip_network
 
 import ops
 from pydantic import (  # pylint: disable=no-name-in-module,import-error
@@ -58,8 +58,8 @@ class CUConfig(BaseModel):  # pylint: disable=too-few-public-methods
     f1_port: int = Field(ge=1, le=65535)
     n3_interface_name: StrictStr = Field(default="n3", min_length=1)
     n3_ip_address: str = Field(default="192.168.251.6/24")
-    n3_gateway_ip: IPv4Address = Field(default="192.168.251.1")
-    upf_subnet: IPvAnyNetwork = Field(default="192.168.252.0/24")
+    n3_gateway_ip: IPv4Address = Field(default=IPv4Address("192.168.251.1"))
+    upf_subnet: IPvAnyNetwork = Field(default=IPv4Network("192.168.252.0/24"))
     mcc: StrictStr = Field(pattern=r"^\d{3}$")
     mnc: StrictStr = Field(pattern=r"^\d{2}$")
     sst: int = Field(ge=1, le=4)
