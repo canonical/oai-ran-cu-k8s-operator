@@ -31,13 +31,15 @@ Example:
 from ops.charm import CharmBase, RelationJoinedEvent
 from ops.main import main
 
-from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides, PLMNConfig
 
 
 class DummyFivegF1ProviderCharm(CharmBase):
 
     IP_ADDRESS = "192.168.70.132"
     PORT = 2153
+    TAC = 1
+    PLMNS = [PLMNConfig(mcc="123", mnc="12", sst=1, sd=1)]
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -51,6 +53,8 @@ class DummyFivegF1ProviderCharm(CharmBase):
             self.f1_provider.set_f1_information(
                 ip_address=self.IP_ADDRESS,
                 port=self.PORT,
+                tac=self.TAC,
+                plmns=self.PLMNS,
             )
 
 
@@ -94,7 +98,9 @@ class DummyFivegF1Requires(CharmBase):
     def _on_f1_information_available(self, event: FivegF1ProviderAvailableEvent):
         provider_f1_ip_address = event.f1_ip_address
         provider_f1_port = event.f1_port
-        <do something with the IP and port>
+        provider_f1_tac = event.tac
+        provider_f1_plmn = event.plmn
+        <do something with the IP, port, TAC and PLMNs>
 
 
 if __name__ == "__main__":
@@ -103,7 +109,9 @@ if __name__ == "__main__":
 
 """
 
+import json
 import logging
+from dataclasses import dataclass
 from typing import Dict, Optional, cast
 
 from interface_tester.schema_base import DataBagSchema
@@ -120,7 +128,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +141,16 @@ Examples:
         unit: <empty>
         app: {
             "f1_ip_address": "192.168.70.132"
-            "f1_port": 2153
+            "f1_port": 2153,
+            "tac": 1,
+            "plmns": [
+                {
+                    "mcc": "001",
+                    "mnc": "01",
+                    "sst": 1,
+                    "sd": 1,
+                }
+            ],
         }
     RequirerSchema:
         unit: <empty>
@@ -141,6 +158,42 @@ Examples:
             "f1_port": 2153
         }
 """
+
+
+@dataclass
+class PLMNConfig(BaseModel):
+    """Dataclass representing the configuration for a PLMN."""
+
+    def __init__(self, mcc: str, mnc: str, sst: int, sd: Optional[int] = None) -> None:
+        super().__init__(mcc=mcc, mnc=mnc, sst=sst, sd=sd)
+
+    mcc: str = Field(
+        description="Mobile Country Code",
+        examples=["001", "208", "302"],
+        pattern=r"[0-9][0-9][0-9]",
+    )
+    mnc: str = Field(
+        description="Mobile Network Code",
+        examples=["01", "001", "999"],
+        pattern=r"[0-9][0-9][0-9]?",
+    )
+    sst: int = Field(
+        description="Slice/Service Type",
+        examples=[1, 2, 3, 4],
+        ge=0,
+        le=255,
+    )
+    sd: Optional[int] = Field(
+        description="Slice Differentiator",
+        default=None,
+        examples=[1],
+        ge=0,
+        le=16777215,
+    )
+
+    def asdict(self):
+        """Convert the dataclass into a dictionary."""
+        return {"mcc": self.mcc, "mnc": self.mnc, "sst": self.sst, "sd": self.sd}
 
 
 class ProviderAppData(BaseModel):
@@ -154,6 +207,14 @@ class ProviderAppData(BaseModel):
         description="Number of the port used for F1 traffic.",
         examples=[2153],
     )
+    tac: int = Field(
+        description="Tracking Area Code",
+        strict=True,
+        examples=[1],
+        ge=1,
+        le=16777215,
+    )
+    plmns: list[PLMNConfig]
 
 
 class ProviderSchema(DataBagSchema):
@@ -214,26 +275,34 @@ def requirer_data_is_valid(data: dict) -> bool:
 class FivegF1ProviderAvailableEvent(EventBase):
     """Charm event emitted when the F1 provider info is available.
 
-    The event carries the F1 provider's IP address and port.
+    The event carries the F1 provider's IP address, port, TAC and PLMNs.
     """
 
-    def __init__(self, handle: Handle, f1_ip_address: str, f1_port: int):
+    def __init__(
+        self, handle: Handle, f1_ip_address: str, f1_port: int, tac: str, plmns: list[PLMNConfig]
+    ):
         """Init."""
         super().__init__(handle)
         self.f1_ip_address = f1_ip_address
         self.f1_port = f1_port
+        self.tac = tac
+        self.plmns = plmns
 
     def snapshot(self) -> dict:
         """Return snapshot."""
         return {
             "f1_ip_address": self.f1_ip_address,
             "f1_port": self.f1_port,
+            "tac": self.tac,
+            "plmns": self.plmns,
         }
 
     def restore(self, snapshot: dict) -> None:
         """Restores snapshot."""
         self.f1_ip_address = snapshot["f1_ip_address"]
         self.f1_port = snapshot["f1_port"]
+        self.tac = snapshot["tac"]
+        self.plmns = snapshot["plmns"]
 
 
 class FivegF1RequestEvent(EventBase):
@@ -339,25 +408,38 @@ class F1Provides(Object):
         if remote_app_relation_data := self._get_remote_app_relation_data(event.relation):
             self.on.fiveg_f1_requirer_available.emit(f1_port=remote_app_relation_data["f1_port"])
 
-    def set_f1_information(self, ip_address: str, port: int) -> None:
+    def set_f1_information(
+        self, ip_address: str, port: int, tac: int, plmns: list[PLMNConfig]
+    ) -> None:
         """Push the information about the F1 interface in the application relation data.
 
         Args:
             ip_address (str): IPv4 address of the network interface used for F1 traffic.
             port (int): Number of the port used for F1 traffic.
+            tac (int): Tracking Area Code.
+            plmns (list[PLMNConfig]): Configured PLMNs.
         """
         if not self.charm.unit.is_leader():
             raise FivegF1Error("Unit must be leader to set application relation data.")
         relations = self.model.relations[self.relation_name]
         if not relations:
             raise FivegF1Error(f"Relation {self.relation_name} not created yet.")
-        if not provider_data_is_valid({"f1_ip_address": ip_address, "f1_port": port}):
+        if not provider_data_is_valid(
+            {
+                "f1_ip_address": ip_address,
+                "f1_port": port,
+                "tac": tac,
+                "plmns": plmns,
+            }
+        ):
             raise FivegF1Error("Invalid relation data")
         for relation in relations:
             relation.data[self.charm.app].update(
                 {
                     "f1_ip_address": ip_address,
                     "f1_port": str(port),
+                    "tac": str(tac),
+                    "plmns": json.dumps([plmn.asdict() for plmn in plmns]),
                 }
             )
 
@@ -419,6 +501,8 @@ class F1Requires(Object):
             self.on.fiveg_f1_provider_available.emit(
                 f1_ip_address=remote_app_relation_data["f1_ip_address"],
                 f1_port=remote_app_relation_data["f1_port"],
+                tac=remote_app_relation_data["tac"],
+                plmns=remote_app_relation_data["plmns"],
             )
 
     def set_f1_information(self, port: int) -> None:
@@ -459,6 +543,28 @@ class F1Requires(Object):
             return cast(Optional[int], remote_app_relation_data.get("f1_port"))
         return None
 
+    @property
+    def tac(self) -> Optional[int]:
+        """Return the TAC used for F1 traffic.
+
+        Returns:
+            int: TAC.
+        """
+        if remote_app_relation_data := self._get_remote_app_relation_data():
+            return cast(Optional[int], remote_app_relation_data.get("tac"))
+        return None
+
+    @property
+    def plmns(self) -> Optional[list[PLMNConfig]]:
+        """Return the TAC used for F1 traffic.
+
+        Returns:
+            int: TAC.
+        """
+        if remote_app_relation_data := self._get_remote_app_relation_data():
+            return cast(Optional[list[PLMNConfig]], remote_app_relation_data.get("plmns"))
+        return None
+
     def _get_remote_app_relation_data(
         self, relation: Optional[Relation] = None
     ) -> Optional[Dict[str, str]]:
@@ -477,8 +583,18 @@ class F1Requires(Object):
         if not relation.app:
             logger.warning("No remote application in relation: %s", self.relation_name)
             return None
+        
+        
         remote_app_relation_data = dict(relation.data[relation.app])
+        
+        
+        remote_app_relation_data["tac"] = int(remote_app_relation_data.get("tac"))
+        remote_app_relation_data["plmns"] = [PLMNConfig(**data) for data in json.loads(remote_app_relation_data.get("plmns"))]
+        logger.error("Invalid relation data: %s", remote_app_relation_data.get("f1_ip_address"))
+        logger.error("Invalid relation data: %s", remote_app_relation_data.get("f1_port"))
+        logger.error("Invalid relation data: %s", remote_app_relation_data.get("tac"))
+        logger.error("Invalid relation data: %s", remote_app_relation_data.get("plmns"))
         if not provider_data_is_valid(remote_app_relation_data):
             logger.error("Invalid relation data: %s", remote_app_relation_data)
             return None
-        return remote_app_relation_data
+        return dict(relation.data[relation.app])

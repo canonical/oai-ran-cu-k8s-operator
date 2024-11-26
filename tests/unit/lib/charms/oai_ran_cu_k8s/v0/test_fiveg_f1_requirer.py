@@ -2,9 +2,9 @@
 # See LICENSE file for licensing details.
 
 from unittest.mock import patch
-
+import json
 import pytest
-from charms.oai_ran_cu_k8s.v0.fiveg_f1 import FivegF1ProviderAvailableEvent
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import FivegF1ProviderAvailableEvent, PLMNConfig
 from ops import testing
 
 from tests.unit.lib.charms.oai_ran_cu_k8s.v0.test_charms.test_requirer_charm.src.charm import (
@@ -32,15 +32,18 @@ class TestFivegF1Requires:
             actions={"set-f1-information": {"params": {"port": {"type": "string"}}}},
         )
 
-    def test_given_fiveg_f1_relation_created_when_relation_changed_then_event_with_provider_f1_ip_address_and_port_is_emitted(  # noqa: E501
+    def test_given_fiveg_f1_relation_created_when_relation_changed_then_event_with_provider_f1_ip_address_port_tac_and_plmns_is_emitted(  # noqa: E501
         self,
     ):
+        plmns = [PLMNConfig(mcc="123", mnc="12", sst=1, sd=12)]
         fiveg_f1_relation = testing.Relation(
             endpoint="fiveg_f1",
             interface="fiveg_f1",
             remote_app_data={
                 "f1_ip_address": "1.2.3.4",
                 "f1_port": "1234",
+                "tac": "2",
+                "plmns": json.dumps([plmn.asdict() for plmn in plmns]),
             },
         )
         state_in = testing.State(
@@ -54,7 +57,10 @@ class TestFivegF1Requires:
         assert isinstance(self.ctx.emitted_events[1], FivegF1ProviderAvailableEvent)
         assert self.ctx.emitted_events[1].f1_ip_address == "1.2.3.4"
         assert self.ctx.emitted_events[1].f1_port == "1234"
-
+        assert self.ctx.emitted_events[1].tac == "2"
+        result_plmns = self.ctx.emitted_events[1].plmns
+        assert plmns == [PLMNConfig(**data) for data in json.loads(result_plmns)]
+            
     def test_given_valid_f1_port_when_set_f1_information_then_requirer_f1_port_is_pushed_to_the_relation_databag(  # noqa: E501
         self,
     ):
