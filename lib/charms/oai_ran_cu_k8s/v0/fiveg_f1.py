@@ -394,14 +394,14 @@ class F1Requires(Object):
             relation.data[self.charm.app].update({"f1_port": str(port)})
 
     @property
-    def f1_ip_address(self) -> Optional[str]:
+    def f1_ip_address(self) -> Optional[IPvAnyAddress]:
         """Return IPv4 address of the network interface used for F1 traffic.
 
         Returns:
             str: IPv4 address.
         """
         if remote_app_relation_data := self._get_remote_app_relation_data():
-            return remote_app_relation_data.get("f1_ip_address")
+            return remote_app_relation_data.f1_ip_address
         return None
 
     @property
@@ -412,7 +412,7 @@ class F1Requires(Object):
             int: Port number.
         """
         if remote_app_relation_data := self._get_remote_app_relation_data():
-            return cast(Optional[int], remote_app_relation_data.get("f1_port"))
+            return remote_app_relation_data.f1_port
         return None
 
     @property
@@ -423,7 +423,7 @@ class F1Requires(Object):
             int: TAC.
         """
         if remote_app_relation_data := self._get_remote_app_relation_data():
-            return cast(Optional[int], remote_app_relation_data.get("tac"))
+            return remote_app_relation_data.tac
         return None
 
     @property
@@ -434,19 +434,19 @@ class F1Requires(Object):
             int: TAC.
         """
         if remote_app_relation_data := self._get_remote_app_relation_data():
-            return cast(Optional[list[PLMNConfig]], remote_app_relation_data.get("plmns"))
+            return remote_app_relation_data.plmns
         return None
 
     def _get_remote_app_relation_data(
         self, relation: Optional[Relation] = None
-    ) -> Optional[Dict[str, str]]:
+    ) -> Optional[ProviderAppData]:
         """Get relation data for the remote application.
 
         Args:
             relation: Juju relation object (optional).
 
         Returns:
-            Dict: Relation data for the remote application or None if the relation data is invalid.
+            ProviderAppData: Relation data for the remote application or None if the relation data is invalid.
         """
         relation = relation or self.model.get_relation(self.relation_name)
         if not relation:
@@ -456,21 +456,22 @@ class F1Requires(Object):
             logger.warning("No remote application in relation: %s", self.relation_name)
             return None
         remote_app_relation_data = dict(relation.data[relation.app])
-        remote_tac = remote_app_relation_data.get("tac")
-        remote_plmns = remote_app_relation_data.get("plmns")
+        remote_tac = remote_app_relation_data.get("tac", "")
+        remote_plmns = remote_app_relation_data.get("plmns", "")
         try:
-            remote_app_relation_data["tac"] = int(remote_tac)
-        except ValueError:
-            logger.error("Invalid tac in relation data: %s", remote_tac)
-            return None
-        try:
-            remote_app_relation_data["plmns"] = [
-                PLMNConfig(**data) for data in json.loads(remote_plmns)
-            ]
+            tac_int = int(remote_tac)
+            plmns_list = [PLMNConfig(**data) for data in json.loads(remote_plmns)]
         except (JSONDecodeError, ValidationError):
             logger.error("Invalid plmns in relation data: %s", remote_plmns)
             return None
-        if not provider_data_is_valid(remote_app_relation_data):
-            logger.error("Invalid relation data: %s", remote_app_relation_data)
+        except ValueError:
+            logger.error("Invalid tac in relation data: %s", remote_tac)
             return None
-        return dict(relation.data[relation.app])
+
+        validated_data = {**remote_app_relation_data, "tac": tac_int, "plmns": plmns_list}
+        try:
+            provider_app_data = ProviderAppData(**validated_data)
+        except ValidationError as e:
+            logger.error("Invalid relation data: %s", e)
+            return None
+        return provider_app_data

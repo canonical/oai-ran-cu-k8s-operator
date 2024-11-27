@@ -16,7 +16,7 @@ from charms.kubernetes_charm_libraries.v0.multus import (
     NetworkAttachmentDefinition,
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
-from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides, PLMNConfig
 from charms.sdcore_amf_k8s.v0.fiveg_n2 import N2Requires
 from charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity import (
     GnbIdentityProvides,
@@ -407,7 +407,10 @@ class OAIRANCUOperator(CharmBase):
             logger.error("F1 IP address is not available")
             return
         self._f1_provider.set_f1_information(
-            ip_address=f1_ip.split("/")[0], port=self._charm_config.f1_port
+            ip_address=f1_ip.split("/")[0],
+            port=self._charm_config.f1_port,
+            tac=1,
+            plmns=[PLMNConfig(mcc="123", mnc="12", sst=1, sd=12)],
         )
 
     def _exec_command_in_workload_container(

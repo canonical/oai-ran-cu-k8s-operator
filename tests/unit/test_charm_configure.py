@@ -9,7 +9,7 @@ from ops import testing
 from ops.pebble import Layer
 
 from tests.unit.fixtures import CUCharmFixtures
-
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import PLMNConfig
 
 class TestCharmConfigure(CUCharmFixtures):
     def test_given_statefulset_is_not_patched_when_config_changed_then_statefulset_is_patched(
@@ -340,6 +340,8 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_f1_set_information.assert_called_once_with(
                 ip_address="192.168.254.7",
                 port=2152,
+                tac=1,
+                plmns=[PLMNConfig(mcc='123', mnc='12', sst=1, sd=12)]
             )
 
     def test_given_charm_is_active_when_config_changed_then_updated_f1_interface_ip_and_port_is_published(  # noqa: E501
@@ -391,6 +393,8 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_f1_set_information.assert_called_with(
                 ip_address=test_f1_ip_address.split("/")[0],
                 port=3522,
+                tac=1,
+                plmns=[PLMNConfig(mcc='123', mnc='12', sst=1, sd=12)]
             )
 
     def test_given_n3_route_not_created_when_config_changed_then_n3_route_is_created(self):
