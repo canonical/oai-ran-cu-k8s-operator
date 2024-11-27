@@ -1,8 +1,9 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import logging
 import json
+import logging
+
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides, PLMNConfig
 from ops.charm import ActionEvent, CharmBase
 from ops.main import main
@@ -28,19 +29,19 @@ class WhateverCharm(CharmBase):
         tac = event.params.get("tac", "")
         plmns = event.params.get("plmns", "")
         self.fiveg_f1_provider.set_f1_information(
-            ip_address=ip_address, 
+            ip_address=ip_address,
             port=port,
             tac=int(tac),
             plmns=[PLMNConfig(**data) for data in json.loads(plmns)]
         )
-    
+
     def _on_set_f1_faulty_information_action(self, event: ActionEvent):
         ip_address = event.params.get("ip-address", "")
         port = event.params.get("port", "")
         tac = event.params.get("tac", "")
         plmns = event.params.get("plmns", "")
         self.fiveg_f1_provider.set_f1_information(
-            ip_address=ip_address, 
+            ip_address=ip_address,
             port=port,
             tac=tac,
             plmns=[PLMNConfig(**data) for data in json.loads(plmns)]

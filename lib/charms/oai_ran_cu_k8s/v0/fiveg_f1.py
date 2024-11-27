@@ -112,6 +112,7 @@ if __name__ == "__main__":
 import json
 import logging
 from dataclasses import dataclass
+from json.decoder import JSONDecodeError
 from typing import Dict, Optional, cast
 
 from interface_tester.schema_base import DataBagSchema
@@ -170,12 +171,12 @@ class PLMNConfig(BaseModel):
     mcc: str = Field(
         description="Mobile Country Code",
         examples=["001", "208", "302"],
-        pattern=r"[0-9][0-9][0-9]",
+        pattern=r"^[0-9][0-9][0-9]$",
     )
     mnc: str = Field(
         description="Mobile Network Code",
         examples=["01", "001", "999"],
-        pattern=r"[0-9][0-9][0-9]?",
+        pattern=r"^[0-9][0-9][0-9]?$",
     )
     sst: int = Field(
         description="Slice/Service Type",
@@ -583,17 +584,19 @@ class F1Requires(Object):
         if not relation.app:
             logger.warning("No remote application in relation: %s", self.relation_name)
             return None
-        
-        
         remote_app_relation_data = dict(relation.data[relation.app])
-        
-        
-        remote_app_relation_data["tac"] = int(remote_app_relation_data.get("tac"))
-        remote_app_relation_data["plmns"] = [PLMNConfig(**data) for data in json.loads(remote_app_relation_data.get("plmns"))]
-        logger.error("Invalid relation data: %s", remote_app_relation_data.get("f1_ip_address"))
-        logger.error("Invalid relation data: %s", remote_app_relation_data.get("f1_port"))
-        logger.error("Invalid relation data: %s", remote_app_relation_data.get("tac"))
-        logger.error("Invalid relation data: %s", remote_app_relation_data.get("plmns"))
+        remote_tac = remote_app_relation_data.get("tac")
+        remote_plmns = remote_app_relation_data.get("plmns")
+        try:
+            remote_app_relation_data["tac"] = int(remote_tac)
+        except ValueError:
+            logger.error("Invalid tac in relation data: %s", remote_tac)
+            return None
+        try:
+            remote_app_relation_data["plmns"] = [PLMNConfig(**data) for data in json.loads(remote_plmns)]
+        except (JSONDecodeError, ValidationError):
+            logger.error("Invalid plmns in relation data: %s", remote_plmns)
+            return None
         if not provider_data_is_valid(remote_app_relation_data):
             logger.error("Invalid relation data: %s", remote_app_relation_data)
             return None

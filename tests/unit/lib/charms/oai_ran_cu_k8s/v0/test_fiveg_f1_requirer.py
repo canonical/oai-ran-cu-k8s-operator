@@ -1,8 +1,9 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from unittest.mock import patch
 import json
+from unittest.mock import patch
+
 import pytest
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import FivegF1ProviderAvailableEvent, PLMNConfig
 from ops import testing
@@ -60,7 +61,40 @@ class TestFivegF1Requires:
         assert self.ctx.emitted_events[1].tac == "2"
         result_plmns = self.ctx.emitted_events[1].plmns
         assert plmns == [PLMNConfig(**data) for data in json.loads(result_plmns)]
-            
+
+    @pytest.mark.parametrize(
+        "tac,plmns",
+        [
+            pytest.param("tac","[{'mcc': '123', 'mnc': '122', 'sst': 1, 'sd': 12}]",id="string_tac"),
+            pytest.param("0","[{'mcc': '123', 'mnc': '122', 'sst': 1, 'sd': 12}]",id="too_small_tac"),
+            pytest.param("16777216","[{'mcc': '123', 'mnc': '122', 'sst': 1, 'sd': 12}]",id="too_big_tac"),
+            pytest.param("3","plmns",id="string_plmns"),
+            pytest.param("3","[{'mcc': '123', 'mnc': '1222', 'sst': 1, 'sd': 12}]",id="invalid_plmns"),
+        ],
+    )
+    def test_given_invalid_remote_data_fiveg_f1_relation_when_relation_changed_then_f1_provide_avaible_event_is_not_emitted(  # noqa: E501
+        self,tac,plmns
+    ):
+        plmns = [PLMNConfig(mcc="123", mnc="12", sst=1, sd=12)]
+        fiveg_f1_relation = testing.Relation(
+            endpoint="fiveg_f1",
+            interface="fiveg_f1",
+            remote_app_data={
+                "f1_ip_address": "1.2.3.4",
+                "f1_port": "1234",
+                "tac": "tac",
+                "plmns": json.dumps([plmn.asdict() for plmn in plmns]),
+            },
+        )
+        state_in = testing.State(
+            relations=[fiveg_f1_relation],
+            leader=True,
+        )
+
+        self.ctx.run(self.ctx.on.relation_changed(fiveg_f1_relation), state_in)
+        assert len(self.ctx.emitted_events) == 1
+        assert not isinstance(self.ctx.emitted_events[0], FivegF1ProviderAvailableEvent)
+
     def test_given_valid_f1_port_when_set_f1_information_then_requirer_f1_port_is_pushed_to_the_relation_databag(  # noqa: E501
         self,
     ):
