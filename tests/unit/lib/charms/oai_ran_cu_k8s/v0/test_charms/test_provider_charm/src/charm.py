@@ -20,7 +20,8 @@ class WhateverCharm(CharmBase):
             self.on.set_f1_information_action, self._on_set_f1_information_action
         )
         self.framework.observe(
-            self.on.set_f1_faulty_information_action, self._on_set_f1_faulty_information_action
+            self.on.set_f1_information_as_string_action,
+            self._on_set_f1_information_as_string_action,
         )
 
     def _on_set_f1_information_action(self, event: ActionEvent):
@@ -32,10 +33,10 @@ class WhateverCharm(CharmBase):
             ip_address=ip_address,
             port=port,
             tac=int(tac),
-            plmns=[PLMNConfig(**data) for data in json.loads(plmns)]
+            plmns=[PLMNConfig(**data) for data in json.loads(plmns)],
         )
 
-    def _on_set_f1_faulty_information_action(self, event: ActionEvent):
+    def _on_set_f1_information_as_string_action(self, event: ActionEvent):
         ip_address = event.params.get("ip-address", "")
         port = event.params.get("port", "")
         tac = event.params.get("tac", "")
@@ -44,7 +45,7 @@ class WhateverCharm(CharmBase):
             ip_address=ip_address,
             port=port,
             tac=tac,
-            plmns=[PLMNConfig(**data) for data in json.loads(plmns)]
+            plmns=[PLMNConfig(**data) for data in json.loads(plmns)],
         )
 
 

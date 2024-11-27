@@ -47,6 +47,9 @@ class DummyFivegF1ProviderCharm(CharmBase):
         self.framework.observe(
             self.on.fiveg_f1_relation_joined, self._on_fiveg_f1_relation_joined
         )
+        self.framework.observe(
+            self.on.fiveg_f1_relation_changed, self._on_fiveg_f1_relation_changed
+        )
 
     def _on_fiveg_f1_relation_joined(self, event: RelationJoinedEvent):
         if self.unit.is_leader():
@@ -56,6 +59,10 @@ class DummyFivegF1ProviderCharm(CharmBase):
                 tac=self.TAC,
                 plmns=self.PLMNS,
             )
+
+    def _on_fiveg_f1_relation_changed(self, event: RelationChangedEvent):
+        requirer_f1_port = self.f1_provider.requirer_f1_port
+        <do something with port>
 
 
 if __name__ == "__main__":
@@ -88,18 +95,18 @@ class DummyFivegF1Requires(CharmBase):
             self.on.fiveg_f1_relation_joined, self._on_fiveg_f1_relation_joined
         )
         self.framework.observe(
-            self.f1_requirer.on.fiveg_f1_provider_available, self._on_f1_information_available
+            self.on.fiveg_f1_relation_changed, self._on_fiveg_f1_relation_changed
         )
 
     def _on_fiveg_f1_relation_joined(self, event: RelationJoinedEvent):
         if self.unit.is_leader():
             self.f1_requirer.set_f1_information(port=self.PORT)
 
-    def _on_f1_information_available(self, event: FivegF1ProviderAvailableEvent):
-        provider_f1_ip_address = event.f1_ip_address
-        provider_f1_port = event.f1_port
-        provider_f1_tac = event.tac
-        provider_f1_plmn = event.plmn
+    def _on_fiveg_f1_relation_changed(self, event: RelationChangedEvent):
+        provider_f1_ip_address = self.f1_requirer.f1_ip_address
+        provider_f1_port = self.f1_requirer.f1_port
+        provider_f1_tac = self.f1_requirer.tac
+        provider_f1_plmn = self.f1_requirer.plmn
         <do something with the IP, port, TAC and PLMNs>
 
 
@@ -116,8 +123,8 @@ from json.decoder import JSONDecodeError
 from typing import Dict, Optional, cast
 
 from interface_tester.schema_base import DataBagSchema
-from ops.charm import CharmBase, CharmEvents, RelationChangedEvent, RelationJoinedEvent
-from ops.framework import EventBase, EventSource, Handle, Object
+from ops.charm import CharmBase
+from ops.framework import Object
 from ops.model import Relation
 from pydantic import BaseModel, Field, IPvAnyAddress, ValidationError
 
@@ -273,104 +280,6 @@ def requirer_data_is_valid(data: dict) -> bool:
         return False
 
 
-class FivegF1ProviderAvailableEvent(EventBase):
-    """Charm event emitted when the F1 provider info is available.
-
-    The event carries the F1 provider's IP address, port, TAC and PLMNs.
-    """
-
-    def __init__(
-        self, handle: Handle, f1_ip_address: str, f1_port: int, tac: str, plmns: list[PLMNConfig]
-    ):
-        """Init."""
-        super().__init__(handle)
-        self.f1_ip_address = f1_ip_address
-        self.f1_port = f1_port
-        self.tac = tac
-        self.plmns = plmns
-
-    def snapshot(self) -> dict:
-        """Return snapshot."""
-        return {
-            "f1_ip_address": self.f1_ip_address,
-            "f1_port": self.f1_port,
-            "tac": self.tac,
-            "plmns": self.plmns,
-        }
-
-    def restore(self, snapshot: dict) -> None:
-        """Restores snapshot."""
-        self.f1_ip_address = snapshot["f1_ip_address"]
-        self.f1_port = snapshot["f1_port"]
-        self.tac = snapshot["tac"]
-        self.plmns = snapshot["plmns"]
-
-
-class FivegF1RequestEvent(EventBase):
-    """Charm event emitted when the F1 requirer joins."""
-
-    def __init__(self, handle: Handle, relation_id: int):
-        """Set relation id.
-
-        Args:
-            handle (Handle): Juju framework handle.
-            relation_id : ID of the relation.
-        """
-        super().__init__(handle)
-        self.relation_id = relation_id
-
-    def snapshot(self) -> dict:
-        """Return event data.
-
-        Returns:
-            (dict): contains the relation ID.
-        """
-        return {
-            "relation_id": self.relation_id,
-        }
-
-    def restore(self, snapshot: dict) -> None:
-        """Restore event data.
-
-        Args:
-            snapshot (dict): contains the relation ID.
-        """
-        self.relation_id = snapshot["relation_id"]
-
-
-class FivegF1RequirerAvailableEvent(EventBase):
-    """Charm event emitted when the F1 requirer info is available.
-
-    The event carries the F1 requirer's  port.
-    """
-
-    def __init__(self, handle: Handle, f1_port: int):
-        """Init."""
-        super().__init__(handle)
-        self.f1_port = f1_port
-
-    def snapshot(self) -> dict:
-        """Return snapshot."""
-        return {"f1_port": self.f1_port}
-
-    def restore(self, snapshot: dict) -> None:
-        """Restores snapshot."""
-        self.f1_port = snapshot["f1_port"]
-
-
-class FivegF1ProviderCharmEvents(CharmEvents):
-    """List of events that the F1 provider charm can leverage."""
-
-    fiveg_f1_request = EventSource(FivegF1RequestEvent)
-    fiveg_f1_requirer_available = EventSource(FivegF1RequirerAvailableEvent)
-
-
-class FivegF1RequirerCharmEvents(CharmEvents):
-    """List of events that the F1 requirer charm can leverage."""
-
-    fiveg_f1_provider_available = EventSource(FivegF1ProviderAvailableEvent)
-
-
 class FivegF1Error(Exception):
     """Custom error class for the `fiveg_f1` library."""
 
@@ -382,32 +291,11 @@ class FivegF1Error(Exception):
 class F1Provides(Object):
     """Class to be instantiated by the charm providing relation using the `fiveg_f1` interface."""
 
-    on = FivegF1ProviderCharmEvents()  # type: ignore
-
     def __init__(self, charm: CharmBase, relation_name: str):
         """Init."""
         super().__init__(charm, relation_name)
         self.relation_name = relation_name
         self.charm = charm
-        self.framework.observe(charm.on[relation_name].relation_joined, self._on_relation_joined)
-        self.framework.observe(charm.on[relation_name].relation_changed, self._on_relation_changed)
-
-    def _on_relation_joined(self, event: RelationJoinedEvent) -> None:
-        """Handle relation joined event.
-
-        Args:
-            event (RelationJoinedEvent): Juju event.
-        """
-        self.on.fiveg_f1_request.emit(relation_id=event.relation.id)
-
-    def _on_relation_changed(self, event: RelationChangedEvent) -> None:
-        """Handle relation changed event.
-
-        Args:
-            event (RelationChangedEvent): Juju event.
-        """
-        if remote_app_relation_data := self._get_remote_app_relation_data(event.relation):
-            self.on.fiveg_f1_requirer_available.emit(f1_port=remote_app_relation_data["f1_port"])
 
     def set_f1_information(
         self, ip_address: str, port: int, tac: int, plmns: list[PLMNConfig]
@@ -483,28 +371,11 @@ class F1Provides(Object):
 class F1Requires(Object):
     """Class to be instantiated by the charm requiring relation using the `fiveg_f1` interface."""
 
-    on = FivegF1RequirerCharmEvents()  # type: ignore
-
     def __init__(self, charm: CharmBase, relation_name: str):
         """Init."""
         super().__init__(charm, relation_name)
         self.charm = charm
         self.relation_name = relation_name
-        self.framework.observe(charm.on[relation_name].relation_changed, self._on_relation_changed)
-
-    def _on_relation_changed(self, event: RelationChangedEvent) -> None:
-        """Handle relation changed event.
-
-        Args:
-            event (RelationChangedEvent): Juju event.
-        """
-        if remote_app_relation_data := self._get_remote_app_relation_data(event.relation):
-            self.on.fiveg_f1_provider_available.emit(
-                f1_ip_address=remote_app_relation_data["f1_ip_address"],
-                f1_port=remote_app_relation_data["f1_port"],
-                tac=remote_app_relation_data["tac"],
-                plmns=remote_app_relation_data["plmns"],
-            )
 
     def set_f1_information(self, port: int) -> None:
         """Push the information about the F1 interface in the application relation data.
@@ -557,7 +428,7 @@ class F1Requires(Object):
 
     @property
     def plmns(self) -> Optional[list[PLMNConfig]]:
-        """Return the TAC used for F1 traffic.
+        """Return the PLMNS used for F1 traffic.
 
         Returns:
             int: TAC.
@@ -593,7 +464,9 @@ class F1Requires(Object):
             logger.error("Invalid tac in relation data: %s", remote_tac)
             return None
         try:
-            remote_app_relation_data["plmns"] = [PLMNConfig(**data) for data in json.loads(remote_plmns)]
+            remote_app_relation_data["plmns"] = [
+                PLMNConfig(**data) for data in json.loads(remote_plmns)
+            ]
         except (JSONDecodeError, ValidationError):
             logger.error("Invalid plmns in relation data: %s", remote_plmns)
             return None

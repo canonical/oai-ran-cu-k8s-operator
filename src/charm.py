@@ -79,8 +79,8 @@ class OAIRANCUOperator(CharmBase):
         self.framework.observe(self.on.cu_pebble_ready, self._configure)
         self.framework.observe(self.on.fiveg_n2_relation_joined, self._configure)
         self.framework.observe(self._n2_requirer.on.n2_information_available, self._configure)
-        self.framework.observe(self._f1_provider.on.fiveg_f1_request, self._configure)
-        self.framework.observe(self._f1_provider.on.fiveg_f1_requirer_available, self._configure)
+        self.framework.observe(self.on[F1_RELATION_NAME].relation_joined, self._configure)
+        self.framework.observe(self.on[F1_RELATION_NAME].relation_changed, self._configure)
         self.framework.observe(
             self._gnb_identity_provider.on.fiveg_gnb_identity_request,
             self._configure,
