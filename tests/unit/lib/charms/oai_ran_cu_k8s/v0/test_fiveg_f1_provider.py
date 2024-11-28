@@ -42,6 +42,11 @@ class TestFivegF1Provides:
                         "plmns": {"type": "string"},
                     }
                 },
+                "get-f1-information": {
+                    "params": {
+                        "expected_port": {"type": "string"},
+                    }
+                },
             },
         )
 
@@ -50,27 +55,16 @@ class TestFivegF1Provides:
         [
             pytest.param([VALID_PLMN], id="sd_is_present"),
             pytest.param([PLMNConfig(mcc="123", mnc="12", sst=1)], id="sd_is_none"),
-            pytest.param([], id="empty_list"),
+            pytest.param([VALID_PLMN, VALID_PLMN], id="many_lists"),
         ],
     )
     def test_given_valid_f1_interface_data_when_set_f1_information_then_f1_ip_address_port_tac_and_plmns_are_pushed_to_the_relation_databag(  # noqa: E501
         self, plmns
     ):
-        fiveg_f1_relation = testing.Relation(
-            endpoint="fiveg_f1",
-            interface="fiveg_f1",
-        )
-        state_in = testing.State(
-            relations=[fiveg_f1_relation],
-            leader=True,
-        )
+        fiveg_f1_relation = testing.Relation(endpoint="fiveg_f1", interface="fiveg_f1")
+        state_in = testing.State(relations=[fiveg_f1_relation], leader=True)
         plmns_as_string = json.dumps([plmn.asdict() for plmn in plmns])
-        params = {
-            "ip-address": VALID_IP,
-            "port": "1234",
-            "tac": "12",
-            "plmns": plmns_as_string,
-        }
+        params = {"ip-address": VALID_IP, "port": "1234", "tac": "12", "plmns": plmns_as_string}
 
         state_out = self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
 
@@ -80,6 +74,27 @@ class TestFivegF1Provides:
         assert relation.local_app_data["tac"] == "12"
         assert relation.local_app_data["plmns"] == plmns_as_string
 
+    def test_given_charm_is_not_leader_when_set_f1_information_then_error_is_raised(self):
+        fiveg_f1_relation = testing.Relation(endpoint="fiveg_f1", interface="fiveg_f1")
+        state_in = testing.State(relations=[fiveg_f1_relation], leader=False)
+        plmns_as_string = json.dumps([plmn.asdict() for plmn in [VALID_PLMN]])
+        params = {"ip-address": VALID_IP, "port": "3", "tac": "123", "plmns": plmns_as_string}
+
+        with pytest.raises(Exception) as e:
+            self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
+
+        assert "Unit must be leader to set application relation data." in str(e.value)
+
+    def test_given_f1_relation_does_not_exist_when_set_f1_information_then_error_is_raised(self):
+        state_in = testing.State(relations=[], leader=True)
+        plmns_as_string = json.dumps([plmn.asdict() for plmn in [VALID_PLMN]])
+        params = {"ip-address": VALID_IP, "port": "3", "tac": "123", "plmns": plmns_as_string}
+
+        with pytest.raises(Exception) as e:
+            self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
+
+        assert "Relation fiveg_f1 not created yet." in str(e.value)
+
     @pytest.mark.parametrize(
         "tac",
         [
@@ -88,22 +103,20 @@ class TestFivegF1Provides:
         ],
     )
     def test_given_invalid_range_tac_when_set_f1_information_then_error_is_raised(self, tac):
-        fiveg_f1_relation = testing.Relation(
-            endpoint="fiveg_f1",
-            interface="fiveg_f1",
-        )
-        state_in = testing.State(
-            relations=[fiveg_f1_relation],
-            leader=True,
-        )
-
+        fiveg_f1_relation = testing.Relation(endpoint="fiveg_f1", interface="fiveg_f1")
+        state_in = testing.State(relations=[fiveg_f1_relation], leader=True)
         plmns_as_string = json.dumps([plmn.asdict() for plmn in [VALID_PLMN]])
-        params = {
-            "ip-address": VALID_IP,
-            "port": "3",
-            "tac": tac,
-            "plmns": plmns_as_string,
-        }
+        params = {"ip-address": VALID_IP, "port": "3", "tac": tac, "plmns": plmns_as_string}
+
+        with pytest.raises(Exception) as e:
+            self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
+
+        assert "Invalid relation data" in str(e.value)
+
+    def test_given_empty_plmns_list_when_set_f1_information_then_error_is_raised(self):
+        fiveg_f1_relation = testing.Relation(endpoint="fiveg_f1", interface="fiveg_f1")
+        state_in = testing.State(relations=[fiveg_f1_relation], leader=True)
+        params = {"ip-address": VALID_IP, "port": "3", "tac": "23", "plmns": "[]"}
 
         with pytest.raises(Exception) as e:
             self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
@@ -124,22 +137,10 @@ class TestFivegF1Provides:
     def test_given_invalid_string_format_ip_address_port_or_tac_when_set_f1_information_then_error_is_raised(  # noqa: E501
         self, ip_address, port, tac
     ):
-        fiveg_f1_relation = testing.Relation(
-            endpoint="fiveg_f1",
-            interface="fiveg_f1",
-        )
-        state_in = testing.State(
-            relations=[fiveg_f1_relation],
-            leader=True,
-        )
-
+        fiveg_f1_relation = testing.Relation(endpoint="fiveg_f1", interface="fiveg_f1")
+        state_in = testing.State(relations=[fiveg_f1_relation], leader=True)
         plmns_as_string = json.dumps([plmn.asdict() for plmn in [VALID_PLMN]])
-        params = {
-            "ip-address": ip_address,
-            "port": port,
-            "tac": tac,
-            "plmns": plmns_as_string,
-        }
+        params = {"ip-address": ip_address, "port": port, "tac": tac, "plmns": plmns_as_string}
 
         with pytest.raises(Exception) as e:
             self.ctx.run(
@@ -148,6 +149,33 @@ class TestFivegF1Provides:
             )
 
         assert "Invalid relation data" in str(e.value)
+
+    @pytest.mark.parametrize(
+        "remote_port,expected_port",
+        [
+            pytest.param("1234", "1234", id="valid_port"),
+            pytest.param("invalid", "", id="invalid_port"),
+        ],
+    )
+    def test_given_remote_app_filled_databag_when_get_f1_information_then_value_is_retrieved(  # noqa: E501
+        self, remote_port, expected_port
+    ):
+        fiveg_f1_relation = testing.Relation(
+            endpoint="fiveg_f1",
+            interface="fiveg_f1",
+            remote_app_data={"f1_port": remote_port},
+        )
+        state_in = testing.State(relations=[fiveg_f1_relation], leader=True)
+        params = {"expected_port": expected_port}
+
+        self.ctx.run(self.ctx.on.action("get-f1-information", params=params), state_in)
+
+    def test_given_f1_relation_does_not_exist_when_get_f1_information_then_none_value_is_retrieved(  # noqa: E501
+        self,
+    ):
+        state_in = testing.State(relations=[], leader=True)
+        params = {"expected_port": ""}
+        self.ctx.run(self.ctx.on.action("get-f1-information", params=params), state_in)
 
     @pytest.mark.parametrize(
         "mcc,mnc,sst,sd",
