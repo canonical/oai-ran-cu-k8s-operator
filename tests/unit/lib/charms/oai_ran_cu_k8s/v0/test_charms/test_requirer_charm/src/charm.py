@@ -40,10 +40,10 @@ class WhateverCharm(CharmBase):
         }
         provider_app_data = ProviderAppData(**validated_data)
 
-        assert provider_app_data == self.fiveg_f1_requirer._get_remote_app_relation_data()
+        assert provider_app_data == self.fiveg_f1_requirer.get_remote_app_relation_data()
 
     def _on_get_f1_information_action_invalid(self, event: ActionEvent):
-        assert self.fiveg_f1_requirer._get_remote_app_relation_data() is None
+        assert self.fiveg_f1_requirer.get_remote_app_relation_data() is None
 
 
 if __name__ == "__main__":

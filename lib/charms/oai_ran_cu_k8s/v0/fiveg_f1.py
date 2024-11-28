@@ -394,7 +394,7 @@ class F1Requires(Object):
         for relation in relations:
             relation.data[self.charm.app].update({"f1_port": str(port)})
 
-    def _get_remote_app_relation_data(
+    def get_remote_app_relation_data(
         self, relation: Optional[Relation] = None
     ) -> Optional[ProviderAppData]:
         """Get relation data for the remote application.
@@ -418,13 +418,13 @@ class F1Requires(Object):
         try:
             tac_int = int(remote_tac)
             plmns_list = [PLMNConfig(**data) for data in json.loads(remote_plmns)]
-        except (JSONDecodeError, ValidationError, ValueError) as e:
-            logger.error("Invalid relation data: %s", e)
+        except (JSONDecodeError, ValidationError, ValueError):
+            logger.error("Invalid relation data: %s", remote_app_relation_data)
             return None
         validated_data = {**remote_app_relation_data, "tac": tac_int, "plmns": plmns_list}
         try:
             provider_app_data = ProviderAppData(**validated_data)
-        except ValidationError as e:
-            logger.error("Invalid relation data: %s", e)
+        except ValidationError:
+            logger.error("Invalid relation data: %s", validated_data)
             return None
         return provider_app_data
