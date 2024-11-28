@@ -3,8 +3,8 @@
 
 
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Requires
+from ops import main
 from ops.charm import ActionEvent, CharmBase
-from ops.main import main
 
 
 class WhateverCharm(CharmBase):

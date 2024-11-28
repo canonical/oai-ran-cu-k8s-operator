@@ -1,7 +1,6 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from unittest.mock import patch
 
 import pytest
 from ops import testing
@@ -12,14 +11,6 @@ from tests.unit.lib.charms.oai_ran_cu_k8s.v0.test_charms.test_requirer_charm.src
 
 
 class TestFivegF1Requires:
-    @pytest.fixture(autouse=True)
-    def setUp(self, request):
-        yield
-        request.addfinalizer(self.tearDown)
-
-    def tearDown(self) -> None:
-        patch.stopall()
-
     @pytest.fixture(autouse=True)
     def context(self):
         self.ctx = testing.Context(

@@ -2,7 +2,6 @@
 # See LICENSE file for licensing details.
 
 import json
-from unittest.mock import patch
 
 import pytest
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import PLMNConfig
@@ -13,16 +12,11 @@ from tests.unit.lib.charms.oai_ran_cu_k8s.v0.test_charms.test_provider_charm.src
     WhateverCharm,
 )
 
+VALID_IP = "1.2.3.4"
+VALID_PLMN = PLMNConfig(mcc="123", mnc="12", sst=1, sd=12)
+
 
 class TestFivegF1Provides:
-    @pytest.fixture(autouse=True)
-    def setUp(self, request):
-        yield
-        request.addfinalizer(self.tearDown)
-
-    def tearDown(self) -> None:
-        patch.stopall()
-
     @pytest.fixture(autouse=True)
     def context(self):
         self.ctx = testing.Context(
@@ -54,7 +48,7 @@ class TestFivegF1Provides:
     @pytest.mark.parametrize(
         "plmns",
         [
-            pytest.param([PLMNConfig(mcc="123", mnc="12", sst=1, sd=12)], id="sd_is_present"),
+            pytest.param([VALID_PLMN], id="sd_is_present"),
             pytest.param([PLMNConfig(mcc="123", mnc="12", sst=1)], id="sd_is_none"),
             pytest.param([], id="empty_list"),
         ],
@@ -72,7 +66,7 @@ class TestFivegF1Provides:
         )
         plmns_as_string = json.dumps([plmn.asdict() for plmn in plmns])
         params = {
-            "ip-address": "1.2.3.4",
+            "ip-address": VALID_IP,
             "port": "1234",
             "tac": "12",
             "plmns": plmns_as_string,
@@ -81,7 +75,7 @@ class TestFivegF1Provides:
         state_out = self.ctx.run(self.ctx.on.action("set-f1-information", params=params), state_in)
 
         relation = state_out.get_relation(fiveg_f1_relation.id)
-        assert relation.local_app_data["f1_ip_address"] == "1.2.3.4"
+        assert relation.local_app_data["f1_ip_address"] == VALID_IP
         assert relation.local_app_data["f1_port"] == "1234"
         assert relation.local_app_data["tac"] == "12"
         assert relation.local_app_data["plmns"] == plmns_as_string
@@ -103,10 +97,9 @@ class TestFivegF1Provides:
             leader=True,
         )
 
-        plmns = [PLMNConfig(mcc="123", mnc="12", sst=12, sd=33)]
-        plmns_as_string = json.dumps([plmn.asdict() for plmn in plmns])
+        plmns_as_string = json.dumps([plmn.asdict() for plmn in [VALID_PLMN]])
         params = {
-            "ip-address": "1.2.3.4",
+            "ip-address": VALID_IP,
             "port": "3",
             "tac": tac,
             "plmns": plmns_as_string,
@@ -122,13 +115,13 @@ class TestFivegF1Provides:
         [
             pytest.param("1111.1111.1111.1111", "1234", "12", id="invalid_ip_address"),
             pytest.param("", "1234", "12", id="empty_ip_address"),
-            pytest.param("1.2.3.4", "port", "12", id="invalid_port"),
-            pytest.param("1.2.3.4", "", "12", id="empty_port"),
-            pytest.param("1.2.3.4", "12", "tac", id="invalid_tac"),
-            pytest.param("1.2.3.4", "12", "", id="empty_tac"),
+            pytest.param(VALID_IP, "port", "12", id="invalid_port"),
+            pytest.param(VALID_IP, "", "12", id="empty_port"),
+            pytest.param(VALID_IP, "12", "tac", id="invalid_tac"),
+            pytest.param(VALID_IP, "12", "", id="empty_tac"),
         ],
     )
-    def test_given_invalid_string_format_ip_addres_port_or_tac_when_set_f1_information_then_error_is_raised(  # noqa: E501
+    def test_given_invalid_string_format_ip_address_port_or_tac_when_set_f1_information_then_error_is_raised(  # noqa: E501
         self, ip_address, port, tac
     ):
         fiveg_f1_relation = testing.Relation(
@@ -140,8 +133,7 @@ class TestFivegF1Provides:
             leader=True,
         )
 
-        plmns = [PLMNConfig(mcc="123", mnc="12", sst=1, sd=12)]
-        plmns_as_string = json.dumps([plmn.asdict() for plmn in plmns])
+        plmns_as_string = json.dumps([plmn.asdict() for plmn in [VALID_PLMN]])
         params = {
             "ip-address": ip_address,
             "port": port,

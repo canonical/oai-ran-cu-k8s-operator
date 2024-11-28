@@ -28,8 +28,8 @@ Typically, this will be the CU charm.
 Example:
 ```python
 
-from ops.charm import CharmBase, RelationJoinedEvent
-from ops.main import main
+from ops import main
+from ops.charm import CharmBase, RelationChangedEvent, RelationJoinedEvent
 
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides, PLMNConfig
 
@@ -62,7 +62,8 @@ class DummyFivegF1ProviderCharm(CharmBase):
 
     def _on_fiveg_f1_relation_changed(self, event: RelationChangedEvent):
         requirer_f1_port = self.f1_provider.requirer_f1_port
-        <do something with port>
+        if requirer_f1_port:
+            <do something with port>
 
 
 if __name__ == "__main__":
@@ -76,12 +77,10 @@ Typically, this will be the DU charm.
 Example:
 ```python
 
-from ops.charm import CharmBase
-from ops.main import main
+from ops import main
+from ops.charm import CharmBase, RelationChangedEvent, RelationJoinedEvent
 
-from charms.oai_ran_cu_k8s.v0.fiveg_f1 import FivegF1ProviderAvailableEvent, F1Requires
-
-logger = logging.getLogger(__name__)
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Requires
 
 
 class DummyFivegF1Requires(CharmBase):
@@ -107,7 +106,7 @@ class DummyFivegF1Requires(CharmBase):
         provider_f1_port = self.f1_requirer.f1_port
         provider_f1_tac = self.f1_requirer.tac
         provider_f1_plmn = self.f1_requirer.plmn
-        <do something with the IP, port, TAC and PLMNs>
+        <do something with the IP address, port, TAC and PLMNs>
 
 
 if __name__ == "__main__":
@@ -446,7 +445,7 @@ class F1Requires(Object):
             relation: Juju relation object (optional).
 
         Returns:
-            ProviderAppData: Relation data for the remote application or None if the relation data is invalid.
+            ProviderAppData: remote application's relation if valid, None otherwise.
         """
         relation = relation or self.model.get_relation(self.relation_name)
         if not relation:
