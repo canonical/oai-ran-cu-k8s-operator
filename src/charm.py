@@ -40,6 +40,8 @@ GNB_IDENTITY_RELATION_NAME = "fiveg_gnb_identity"
 DU_F1_DEFAULT_PORT = 2152
 WORKLOAD_VERSION_FILE_NAME = "/etc/workload-version"
 LOGGING_RELATION_NAME = "logging"
+HARDCODED_PLMNS = [PLMNConfig(mcc="001", mnc="01", sst=1, sd=12)]
+HARDCODED_TAC = 1
 
 
 class OAIRANCUOperator(CharmBase):
@@ -409,8 +411,8 @@ class OAIRANCUOperator(CharmBase):
         self._f1_provider.set_f1_information(
             ip_address=f1_ip.split("/")[0],
             port=self._charm_config.f1_port,
-            tac=1,
-            plmns=[PLMNConfig(mcc="123", mnc="12", sst=1, sd=12)],
+            tac=HARDCODED_TAC,
+            plmns=HARDCODED_PLMNS,
         )
 
     def _exec_command_in_workload_container(

@@ -119,7 +119,7 @@ import json
 import logging
 from dataclasses import dataclass
 from json.decoder import JSONDecodeError
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from interface_tester.schema_base import DataBagSchema
 from ops.charm import CharmBase
@@ -360,7 +360,7 @@ class F1Provides(Object):
         if not relation.app:
             logger.warning("No remote application in relation: %s", self.relation_name)
             return None
-        remote_app_relation_data = dict(relation.data[relation.app])
+        remote_app_relation_data: Dict[str, Any] = dict(relation.data[relation.app])
         try:
             requirer_app_data = RequirerAppData(**remote_app_relation_data)
         except ValidationError:
@@ -394,7 +394,7 @@ class F1Requires(Object):
         for relation in relations:
             relation.data[self.charm.app].update({"f1_port": str(port)})
 
-    def get_remote_app_relation_data(
+    def get_provider_f1_information(
         self, relation: Optional[Relation] = None
     ) -> Optional[ProviderAppData]:
         """Get relation data for the remote application.
@@ -412,19 +412,19 @@ class F1Requires(Object):
         if not relation.app:
             logger.warning("No remote application in relation: %s", self.relation_name)
             return None
-        remote_app_relation_data = dict(relation.data[relation.app])
-        remote_tac = remote_app_relation_data.get("tac", "")
+        remote_app_relation_data: Dict[str, Any] = dict(relation.data[relation.app])
         remote_plmns = remote_app_relation_data.get("plmns", "")
         try:
-            tac_int = int(remote_tac)
-            plmns_list = [PLMNConfig(**data) for data in json.loads(remote_plmns)]
+            remote_app_relation_data["tac"] = int(remote_app_relation_data.get("tac", ""))
+            remote_app_relation_data["plmns"] = [
+                PLMNConfig(**data) for data in json.loads(remote_plmns)
+            ]
         except (JSONDecodeError, ValidationError, ValueError):
             logger.error("Invalid relation data: %s", remote_app_relation_data)
             return None
-        validated_data = {**remote_app_relation_data, "tac": tac_int, "plmns": plmns_list}
         try:
-            provider_app_data = ProviderAppData(**validated_data)
+            provider_app_data = ProviderAppData(**remote_app_relation_data)
         except ValidationError:
-            logger.error("Invalid relation data: %s", validated_data)
+            logger.error("Invalid relation data: %s", remote_app_relation_data)
             return None
         return provider_app_data
