@@ -5,6 +5,7 @@
 import os
 import tempfile
 
+import pytest
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import PLMNConfig
 from ops import testing
 from ops.pebble import Layer
@@ -95,8 +96,26 @@ class TestCharmConfigure(CUCharmFixtures):
 
             self.mock_k8s_privileged.patch_statefulset.assert_not_called()
 
+    @pytest.mark.parametrize(
+        "plmns,config_file",
+        [
+            pytest.param(
+                [PLMNConfig(mcc="001", mnc="01", sst=1)],
+                "tests/unit/resources/expected_config.conf",
+                id="single_plmn",
+            ),
+            pytest.param(
+                [
+                    PLMNConfig(mcc="001", mnc="01", sst=1),
+                    PLMNConfig(mcc="456", mnc="99", sst=16, sd=7532),
+                ],
+                "tests/unit/resources/expected_config_multiple_plmns.conf",
+                id="two_plmns",
+            ),
+        ],
+    )
     def test_given_workload_is_ready_to_be_configured_when_config_changed_then_cu_config_file_is_generated_and_pushed_to_the_workload_container(  # noqa: E501
-        self,
+        self, plmns, config_file
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
             n2_relation = testing.Relation(
@@ -133,11 +152,11 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             self.mock_gnb_core_remote_tac.return_value = 1
-            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
+            self.mock_gnb_core_remote_plmns.return_value = plmns
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
-            with open("tests/unit/resources/expected_config.conf") as expected_config_file:
+            with open(config_file) as expected_config_file:
                 expected_config = expected_config_file.read()
 
             with open(f"{tmpdir}/cu.conf") as cu_conf:
@@ -231,8 +250,9 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            self.mock_gnb_core_remote_tac.return_value = 1
-            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
+            self.mock_gnb_core_remote_tac.return_value = 67
+            plmns = [PLMNConfig(mcc="001", mnc="01", sst=99)]
+            self.mock_gnb_core_remote_plmns.return_value = plmns
 
             state_out = self.ctx.run(self.ctx.on.config_changed(), state_in)
 
@@ -341,19 +361,67 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            self.mock_gnb_core_remote_tac.return_value = 1
-            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
+            self.mock_gnb_core_remote_tac.return_value = 87
+            plmns = [PLMNConfig(mcc="431", mnc="01", sst=17)]
+            self.mock_gnb_core_remote_plmns.return_value = plmns
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_f1_set_information.assert_called_once_with(
                 ip_address="192.168.254.7",
                 port=2152,
-                tac=1,
-                plmns=[PLMNConfig(mcc="001", mnc="01", sst=1)],
+                tac=87,
+                plmns=plmns,
             )
 
-    #### TEST CORE CONFIG NOT AVAILABLE WHEN F1 CREATED THEN IS NOT PUBLISHED
+    def test_given_core_gnb_remote_tac_and_plmns_are_none_when_config_changed_then_f1_information_is_not_published(  # noqa: E501
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n2_relation = testing.Relation(
+                endpoint="fiveg_n2",
+                interface="fiveg_n2",
+                remote_app_data={
+                    "amf_hostname": "amf",
+                    "amf_port": "38412",
+                    "amf_ip_address": "1.2.3.4",
+                },
+            )
+            fiveg_core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb",
+                interface="fiveg_core_gnb",
+            )
+            config_mount = testing.Mount(
+                location="/tmp/conf",
+                source=tmpdir,
+            )
+            container = testing.Container(
+                name="cu",
+                mounts={"config": config_mount},
+                can_connect=True,
+                execs={
+                    testing.Exec(
+                        command_prefix=["ip", "route", "show"],
+                        stdout="192.168.252.0/24 via 192.168.251.1",
+                        stderr="",
+                    )
+                },
+            )
+            state_in = testing.State(
+                model=testing.Model(name="whatever"),
+                leader=True,
+                containers=[container],
+                relations=[n2_relation, fiveg_core_gnb_relation],
+            )
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+            self.mock_gnb_core_remote_tac.return_value = None
+            self.mock_gnb_core_remote_plmns.return_value = None
+
+            self.ctx.run(self.ctx.on.config_changed(), state_in)
+
+            self.mock_f1_set_information.assert_not_called()
+
     def test_given_charm_is_active_when_config_changed_then_updated_f1_interface_ip_port_tac_and_plmns_are_published(  # noqa: E501
         self,
     ):
@@ -398,7 +466,8 @@ class TestCharmConfigure(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             self.mock_gnb_core_remote_tac.return_value = 1
-            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
+            plmns = [PLMNConfig(mcc="001", mnc="01", sst=1, sd=6)]
+            self.mock_gnb_core_remote_plmns.return_value = plmns
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
@@ -406,7 +475,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 ip_address=test_f1_ip_address.split("/")[0],
                 port=3522,
                 tac=1,
-                plmns=[PLMNConfig(mcc="001", mnc="01", sst=1)],
+                plmns=plmns,
             )
 
     def test_given_n3_route_not_created_when_config_changed_then_n3_route_is_created(self):

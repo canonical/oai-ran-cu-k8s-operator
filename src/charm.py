@@ -256,7 +256,7 @@ class OAIRANCUOperator(CharmBase):
             cu_n3_ip_address=str(self._charm_config.n3_ip_address).split("/")[0],
             amf_external_address=self._n2_requirer.amf_ip_address,
             tac=tac,
-            plmns=plmns
+            plmns=plmns,
         )
 
     def _generate_network_annotations(self) -> List[NetworkAnnotation]:
@@ -403,7 +403,7 @@ class OAIRANCUOperator(CharmBase):
         plmns = self._core_gnb_requirer.plmns
         if not tac or not plmns:
             return
-        
+
         self._f1_provider.set_f1_information(
             ip_address=f1_ip.split("/")[0],
             port=self._charm_config.f1_port,
