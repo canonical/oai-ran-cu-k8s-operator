@@ -5,9 +5,10 @@
 import tempfile
 
 import pytest
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import PLMNConfig
 from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
-from charms.oai_ran_cu_k8s.v0.fiveg_f1 import PLMNConfig
+
 from tests.unit.fixtures import CUCharmFixtures
 
 
@@ -207,16 +208,16 @@ class TestCharmCollectStatus(CUCharmFixtures):
             state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == WaitingStatus("Waiting for the N3 route to be created")
-    
+
     @pytest.mark.parametrize(
         "tac,plmns",
         [
-            pytest.param(None, [PLMNConfig(mcc="001", mnc="01", sst=1)], id="tac_is_none"),
+            pytest.param(None, [PLMNConfig(mcc="001", mnc="01", sst=31)], id="tac_is_none"),
             pytest.param(23, None, id="plmns_is_none"),
             pytest.param(None, None, id="plmns_and_tac_are_none"),
         ],
     )
-    def test_given_remove_fiveg_core_gnb_tac_and_plmns_are_none_when_collect_unit_status_then_status_is_waiting(
+    def test_given_fiveg_core_gnb_tac_and_plmns_are_none_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self, tac, plmns
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -255,7 +256,9 @@ class TestCharmCollectStatus(CUCharmFixtures):
 
             state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
-            assert state_out.unit_status == WaitingStatus("Waiting for TAC and PLMNs configuration")
+            assert state_out.unit_status == WaitingStatus(
+                "Waiting for TAC and PLMNs configuration"
+            )
 
     def test_given_all_status_check_are_ok_when_collect_unit_status_then_status_is_active(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -271,7 +274,8 @@ class TestCharmCollectStatus(CUCharmFixtures):
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             self.mock_gnb_core_remote_tac.return_value = 2
-            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
+            plmns = [PLMNConfig(mcc="301", mnc="21", sst=1, sd=55)]
+            self.mock_gnb_core_remote_plmns.return_value = plmns
             config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
@@ -360,5 +364,3 @@ class TestCharmCollectStatus(CUCharmFixtures):
             state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == WaitingStatus("Waiting for Multus to be ready")
-
-    ## TEST WAITING FOR CORE INFORMATION
