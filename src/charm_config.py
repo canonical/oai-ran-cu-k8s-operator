@@ -60,10 +60,6 @@ class CUConfig(BaseModel):  # pylint: disable=too-few-public-methods
     n3_ip_address: str = Field(default="192.168.251.6/24")
     n3_gateway_ip: IPv4Address = Field(default=IPv4Address("192.168.251.1"))
     upf_subnet: IPvAnyNetwork = Field(default=IPv4Network("192.168.252.0/24"))
-    mcc: StrictStr = Field(pattern=r"^\d{3}$")
-    mnc: StrictStr = Field(pattern=r"^\d{2}$")
-    sst: int = Field(ge=1, le=4)
-    tac: int = Field(ge=1, le=16777215)
 
     @field_validator("f1_ip_address", "n3_ip_address", mode="before")
     @classmethod
@@ -86,10 +82,6 @@ class CharmConfig:
         n3_ip_address: IP address used by n3 interface
         upf_subnet: Subnet for UPF n3 interface
         n3_gateway_ip: Gateway IP address to the UPF Network.
-        mcc: Mobile Country Code
-        mnc: Mobile Network code
-        sst: Slice Service Type
-        tac: Tracking Area Code
     """
 
     cni_type: CNIType
@@ -100,10 +92,6 @@ class CharmConfig:
     n3_ip_address: str
     upf_subnet: IPvAnyNetwork
     n3_gateway_ip: IPv4Address
-    mcc: StrictStr
-    mnc: StrictStr
-    sst: int
-    tac: int
 
     def __init__(self, *, cu_config: CUConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -119,10 +107,6 @@ class CharmConfig:
         self.n3_ip_address = cu_config.n3_ip_address
         self.upf_subnet = cu_config.upf_subnet
         self.n3_gateway_ip = cu_config.n3_gateway_ip
-        self.mcc = cu_config.mcc
-        self.mnc = cu_config.mnc
-        self.sst = cu_config.sst
-        self.tac = cu_config.tac
 
     @classmethod
     def from_charm(

@@ -18,8 +18,8 @@ from charms.kubernetes_charm_libraries.v0.multus import (
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides, PLMNConfig
 from charms.sdcore_amf_k8s.v0.fiveg_n2 import N2Requires
-from charms.sdcore_gnbsim_k8s.v0.fiveg_gnb_identity import (
-    GnbIdentityProvides,
+from charms.sdcore_nms_k8s.v0.fiveg_core_gnb import (
+    FivegCoreGnbRequires,
 )
 from jinja2 import Environment, FileSystemLoader
 from lightkube.models.meta_v1 import ObjectMeta
@@ -36,12 +36,10 @@ BASE_CONFIG_PATH = "/tmp/conf"
 CONFIG_FILE_NAME = "cu.conf"
 F1_RELATION_NAME = "fiveg_f1"
 N2_RELATION_NAME = "fiveg_n2"
-GNB_IDENTITY_RELATION_NAME = "fiveg_gnb_identity"
+CORE_GNB_RELATION_NAME = "fiveg_core_gnb"
 DU_F1_DEFAULT_PORT = 2152
 WORKLOAD_VERSION_FILE_NAME = "/etc/workload-version"
 LOGGING_RELATION_NAME = "logging"
-HARDCODED_PLMNS = [PLMNConfig(mcc="001", mnc="01", sst=1, sd=12)]
-HARDCODED_TAC = 1
 
 
 class OAIRANCUOperator(CharmBase):
@@ -55,7 +53,7 @@ class OAIRANCUOperator(CharmBase):
         self._container_name = self._service_name = "cu"
         self._container = self.unit.get_container(self._container_name)
         self._n2_requirer = N2Requires(self, N2_RELATION_NAME)
-        self._gnb_identity_provider = GnbIdentityProvides(self, GNB_IDENTITY_RELATION_NAME)
+        self._core_gnb_requirer = FivegCoreGnbRequires(self, CORE_GNB_RELATION_NAME)
         self._f1_provider = F1Provides(self, F1_RELATION_NAME)
         self._logging = LogForwarder(charm=self, relation_name=LOGGING_RELATION_NAME)
         self._k8s_privileged = K8sPrivileged(
@@ -81,12 +79,10 @@ class OAIRANCUOperator(CharmBase):
         self.framework.observe(self.on.cu_pebble_ready, self._configure)
         self.framework.observe(self.on.fiveg_n2_relation_joined, self._configure)
         self.framework.observe(self._n2_requirer.on.n2_information_available, self._configure)
-        self.framework.observe(self.on[F1_RELATION_NAME].relation_joined, self._configure)
+        self.framework.observe(self.on[F1_RELATION_NAME].relation_created, self._configure)
         self.framework.observe(self.on[F1_RELATION_NAME].relation_changed, self._configure)
-        self.framework.observe(
-            self._gnb_identity_provider.on.fiveg_gnb_identity_request,
-            self._configure,
-        )
+        self.framework.observe(self.on[CORE_GNB_RELATION_NAME].relation_created, self._configure)
+        self.framework.observe(self.on[CORE_GNB_RELATION_NAME].relation_changed, self._configure)
         self.framework.observe(self.on.remove, self._on_remove)
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):  # noqa C901
@@ -147,6 +143,9 @@ class OAIRANCUOperator(CharmBase):
             event.add_status(WaitingStatus("Waiting for the N3 route to be created"))
             logger.info("Waiting for the N3 route to be created")
             return
+        if not self._core_gnb_requirer.tac or not self._core_gnb_requirer.plmns:
+            event.add_status(WaitingStatus("Waiting for TAC and PLMNs configuration"))
+            return
         event.add_status(ActiveStatus())
 
     def _configure(self, _) -> None:  # noqa C901
@@ -169,8 +168,10 @@ class OAIRANCUOperator(CharmBase):
             self._k8s_privileged.patch_statefulset(container_name=self._container_name)
         if not self._n3_route_exists():
             self._create_n3_route()
+        self._update_fiveg_core_gnb_relation_data()
+        if not self._core_gnb_requirer.tac or not self._core_gnb_requirer.plmns:
+            return
         self._update_fiveg_f1_relation_data()
-        self._update_fiveg_gnb_identity_relation_data()
 
         if not self._relation_created(N2_RELATION_NAME):
             return
@@ -223,6 +224,10 @@ class OAIRANCUOperator(CharmBase):
         return bool(self.model.relations.get(relation_name))
 
     def _generate_cu_config(self) -> str:
+        tac = self._core_gnb_requirer.tac
+        plmns = self._core_gnb_requirer.plmns
+        if not tac or not plmns:
+            return ""
         if self._f1_provider.requirer_f1_port:
             du_f1_port = self._f1_provider.requirer_f1_port
         else:
@@ -250,10 +255,8 @@ class OAIRANCUOperator(CharmBase):
             cu_n3_interface_name=self._charm_config.n3_interface_name,
             cu_n3_ip_address=str(self._charm_config.n3_ip_address).split("/")[0],
             amf_external_address=self._n2_requirer.amf_ip_address,
-            mcc=self._charm_config.mcc,
-            mnc=self._charm_config.mnc,
-            sst=self._charm_config.sst,
-            tac=self._charm_config.tac,
+            tac=tac,
+            plmns=plmns
         )
 
     def _generate_network_annotations(self) -> List[NetworkAnnotation]:
@@ -377,42 +380,35 @@ class OAIRANCUOperator(CharmBase):
             logger.info("Restarted container %s", self._service_name)
             return
 
-    def _update_fiveg_gnb_identity_relation_data(self) -> None:
-        """Publish GNB name and TAC in the `fiveg_gnb_identity` relation data bag."""
+    def _update_fiveg_core_gnb_relation_data(self) -> None:
+        """Publish gNB name `fiveg_core_gnb` relation data bag."""
         if not self.unit.is_leader():
             return
-        fiveg_gnb_identity_relations = self.model.relations.get(GNB_IDENTITY_RELATION_NAME)
-        if not fiveg_gnb_identity_relations:
-            logger.info("No %s relations found.", GNB_IDENTITY_RELATION_NAME)
+        if not self._relation_created(CORE_GNB_RELATION_NAME):
+            logger.info("No %s relations found.", CORE_GNB_RELATION_NAME)
             return
-
-        tac = self._charm_config.tac
-        if not tac:
-            logger.error(
-                "TAC value cannot be published on the %s relation", GNB_IDENTITY_RELATION_NAME
-            )
-            return
-        for gnb_identity_relation in fiveg_gnb_identity_relations:
-            self._gnb_identity_provider.publish_gnb_identity_information(
-                relation_id=gnb_identity_relation.id, gnb_name=self._gnb_name, tac=tac
-            )
+        self._core_gnb_requirer.publish_gnb_information(gnb_name=self._gnb_name)
 
     def _update_fiveg_f1_relation_data(self) -> None:
         """Publish F1 interface information in the `fiveg_f1` relation data bag."""
         if not self.unit.is_leader():
             return
-        fiveg_f1_relations = self.model.relations.get(F1_RELATION_NAME)
-        if not fiveg_f1_relations:
+        if not self._relation_created(F1_RELATION_NAME):
             logger.info("No %s relations found.", F1_RELATION_NAME)
             return
         if not (f1_ip := self._charm_config.f1_ip_address):
             logger.error("F1 IP address is not available")
             return
+        tac = self._core_gnb_requirer.tac
+        plmns = self._core_gnb_requirer.plmns
+        if not tac or not plmns:
+            return
+        
         self._f1_provider.set_f1_information(
             ip_address=f1_ip.split("/")[0],
             port=self._charm_config.f1_port,
-            tac=HARDCODED_TAC,
-            plmns=HARDCODED_PLMNS,
+            tac=tac,
+            plmns=plmns,
         )
 
     def _exec_command_in_workload_container(
@@ -495,10 +491,8 @@ def _render_config_file(
     cu_n3_interface_name: str,
     cu_n3_ip_address: str,
     amf_external_address: str,
-    mcc: str,
-    mnc: str,
-    sst: int,
     tac: int,
+    plmns: List[PLMNConfig],
 ) -> str:
     """Render CU config file based on parameters.
 
@@ -512,10 +506,8 @@ def _render_config_file(
         cu_n3_interface_name: Name of the network interface used for N3 traffic
         cu_n3_ip_address: IPv4 address of the network interface used for N3 traffic
         amf_external_address: AMF hostname
-        mcc: Mobile Country Code
-        mnc: Mobile Network Code
-        sst: Slice Selection Type
         tac: Tracking Area Code
+        plmns: list of PLMN
 
     Returns:
         str: Rendered CU configuration file
@@ -532,10 +524,8 @@ def _render_config_file(
         cu_n3_interface_name=cu_n3_interface_name,
         cu_n3_ip_address=cu_n3_ip_address,
         amf_external_address=amf_external_address,
-        mcc=mcc,
-        mnc=mnc,
-        sst=sst,
         tac=tac,
+        plmn_list=plmns,
     )
 
 

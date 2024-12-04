@@ -42,6 +42,7 @@ async def test_relate_and_wait_for_active_status(
 ):
     assert ops_test.model
     await ops_test.model.integrate(relation1=f"{APP_NAME}:fiveg_n2", relation2=AMF_CHARM_NAME)
+    await ops_test.model.integrate(relation1=f"{APP_NAME}:fiveg_core_gnb", relation2=NMS_CHARM_NAME)
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME],
         raise_on_error=False,

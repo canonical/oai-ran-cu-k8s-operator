@@ -11,9 +11,6 @@ from ops.pebble import Layer
 
 from tests.unit.fixtures import CUCharmFixtures
 
-HARDCODED_PLMNS = [PLMNConfig(mcc="001", mnc="01", sst=1, sd=12)]
-HARDCODED_TAC = 1
-
 
 class TestCharmConfigure(CUCharmFixtures):
     def test_given_statefulset_is_not_patched_when_config_changed_then_statefulset_is_patched(
@@ -135,6 +132,8 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
+            self.mock_gnb_core_remote_tac.return_value = 1
+            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
@@ -181,6 +180,8 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
+            self.mock_gnb_core_remote_tac.return_value = 1
+            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
             with open("tests/unit/resources/expected_config.conf") as expected_config_file:
                 expected_config = expected_config_file.read()
             with open(f"{tmpdir}/cu.conf", "w") as cu_conf:
@@ -230,6 +231,8 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
+            self.mock_gnb_core_remote_tac.return_value = 1
+            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
 
             state_out = self.ctx.run(self.ctx.on.config_changed(), state_in)
 
@@ -247,7 +250,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 }
             )
 
-    def test_given_charm_is_configured_and_running_when_fiveg_gnb_identity_relation_is_added_then_default_tac_is_published(  # noqa: E501
+    def test_given_core_gnb_remote_tac_and_plmns_are_none_when_fiveg_core_gnb_relation_is_added_then_gnb_name_is_published(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -260,9 +263,9 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
-            fiveg_gnb_relation = testing.Relation(
-                endpoint="fiveg_gnb_identity",
-                interface="fiveg_gnb_identity",
+            fiveg_core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb",
+                interface="fiveg_core_gnb",
             )
             config_mount = testing.Mount(
                 location="/tmp/conf",
@@ -284,20 +287,20 @@ class TestCharmConfigure(CUCharmFixtures):
                 model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
-                relations=[n2_relation, fiveg_gnb_relation],
+                relations=[n2_relation, fiveg_core_gnb_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
+            self.mock_gnb_core_remote_tac.return_value = None
+            self.mock_gnb_core_remote_plmns.return_value = None
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
-            self.mock_gnb_identity.assert_called_once_with(
-                relation_id=fiveg_gnb_relation.id,
+            self.mock_publish_gnb_information.assert_called_once_with(
                 gnb_name="whatever-oai-ran-cu-k8s-cu",
-                tac=1,
             )
 
-    def test_given_charm_is_configured_and_running_when_f1_relation_is_added_then_f1_interface_ip_and_port_is_published(  # noqa: E501
+    def test_given_core_gnb_remote_tac_and_plmns_are_available_when_f1_relation_is_added_then_f1_ip_port_tac_and_plmns_are_published(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -338,17 +341,20 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
+            self.mock_gnb_core_remote_tac.return_value = 1
+            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_f1_set_information.assert_called_once_with(
                 ip_address="192.168.254.7",
                 port=2152,
-                tac=HARDCODED_TAC,
-                plmns=HARDCODED_PLMNS,
+                tac=1,
+                plmns=[PLMNConfig(mcc="001", mnc="01", sst=1)],
             )
 
-    def test_given_charm_is_active_when_config_changed_then_updated_f1_interface_ip_and_port_is_published(  # noqa: E501
+    #### TEST CORE CONFIG NOT AVAILABLE WHEN F1 CREATED THEN IS NOT PUBLISHED
+    def test_given_charm_is_active_when_config_changed_then_updated_f1_interface_ip_port_tac_and_plmns_are_published(  # noqa: E501
         self,
     ):
         test_f1_ip_address = "10.3.5.1/24"
@@ -391,14 +397,16 @@ class TestCharmConfigure(CUCharmFixtures):
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
+            self.mock_gnb_core_remote_tac.return_value = 1
+            self.mock_gnb_core_remote_plmns.return_value = [PLMNConfig(mcc="001", mnc="01", sst=1)]
 
             self.ctx.run(self.ctx.on.config_changed(), state_in)
 
             self.mock_f1_set_information.assert_called_with(
                 ip_address=test_f1_ip_address.split("/")[0],
                 port=3522,
-                tac=HARDCODED_TAC,
-                plmns=HARDCODED_PLMNS,
+                tac=1,
+                plmns=[PLMNConfig(mcc="001", mnc="01", sst=1)],
             )
 
     def test_given_n3_route_not_created_when_config_changed_then_n3_route_is_created(self):
