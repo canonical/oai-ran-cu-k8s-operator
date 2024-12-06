@@ -16,10 +16,10 @@ from charms.kubernetes_charm_libraries.v0.multus import (
     NetworkAttachmentDefinition,
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
-from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides, PLMNConfig
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides
 from charms.sdcore_amf_k8s.v0.fiveg_n2 import N2Requires
 from charms.sdcore_nms_k8s.v0.fiveg_core_gnb import (
-    FivegCoreGnbRequires,
+    FivegCoreGnbRequires,PLMNConfig
 )
 from jinja2 import Environment, FileSystemLoader
 from lightkube.models.meta_v1 import ObjectMeta
@@ -138,6 +138,10 @@ class OAIRANCUOperator(CharmBase):
         if not self._n2_requirer.amf_hostname:
             event.add_status(WaitingStatus("Waiting for N2 information"))
             logger.info("Waiting for N2 information")
+            return
+        if not self._relation_created(CORE_GNB_RELATION_NAME):
+            event.add_status(BlockedStatus("Waiting for fiveg_core_gnb relation to be created"))
+            logger.info("Waiting for fiveg_core_gnb relation to be created")
             return
         if not self._n3_route_exists():
             event.add_status(WaitingStatus("Waiting for the N3 route to be created"))
@@ -492,7 +496,7 @@ def _render_config_file(
     cu_n3_ip_address: str,
     amf_external_address: str,
     tac: int,
-    plmns: List[PLMNConfig],
+    plmns: list[PLMNConfig],
 ) -> str:
     """Render CU config file based on parameters.
 
