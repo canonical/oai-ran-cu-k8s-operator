@@ -38,12 +38,12 @@ resources:
 provides:
   fiveg_f1:
     interface: fiveg_f1
-  fiveg_gnb_identity:
-    interface: fiveg_gnb_identity
 
 requires:
   fiveg_n2:
     interface: fiveg_n2
+  fiveg_core_gnb:
+    interface: fiveg_core_gnb
   logging:
     interface: loki_push_api
 
@@ -88,22 +88,6 @@ config:
       type: string
       default: "192.168.252.0/24"
       description: UPF's N3 interface subnet.
-    mcc:
-      type: string
-      default: "001"
-      description: Mobile Country Code
-    mnc:
-      type: string
-      default: "01"
-      description: Mobile Network code
-    sst:
-      type: int
-      default: 1
-      description: Slice Service Type
-    tac:
-      type: int
-      default: 1
-      description: Tracking Area Code
 
 parts:
   charm:
