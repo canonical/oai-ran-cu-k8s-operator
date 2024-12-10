@@ -18,9 +18,7 @@ from charms.kubernetes_charm_libraries.v0.multus import (
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides
 from charms.sdcore_amf_k8s.v0.fiveg_n2 import N2Requires
-from charms.sdcore_nms_k8s.v0.fiveg_core_gnb import (
-    FivegCoreGnbRequires,PLMNConfig
-)
+from charms.sdcore_nms_k8s.v0.fiveg_core_gnb import FivegCoreGnbRequires, PLMNConfig
 from jinja2 import Environment, FileSystemLoader
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus, main
@@ -168,11 +166,13 @@ class OAIRANCUOperator(CharmBase):
             return
         if not _get_pod_ip():
             return
+        if not self._relation_created(CORE_GNB_RELATION_NAME):
+            return
+        self._update_fiveg_core_gnb_relation_data()
         if not self._k8s_privileged.is_patched(container_name=self._container_name):
             self._k8s_privileged.patch_statefulset(container_name=self._container_name)
         if not self._n3_route_exists():
             self._create_n3_route()
-        self._update_fiveg_core_gnb_relation_data()
         if not self._core_gnb_requirer.tac or not self._core_gnb_requirer.plmns:
             return
         self._update_fiveg_f1_relation_data()
@@ -412,7 +412,7 @@ class OAIRANCUOperator(CharmBase):
             ip_address=f1_ip.split("/")[0],
             port=self._charm_config.f1_port,
             tac=tac,
-            plmns=plmns,
+            plmns=plmns,  # type: ignore
         )
 
     def _exec_command_in_workload_container(

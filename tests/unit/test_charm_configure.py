@@ -27,6 +27,9 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
+            core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
+            )
             config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
@@ -46,7 +49,7 @@ class TestCharmConfigure(CUCharmFixtures):
             state_in = testing.State(
                 leader=True,
                 containers=[container],
-                relations=[n2_relation],
+                relations=[n2_relation, core_gnb_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = False
             self.mock_check_output.return_value = b"1.1.1.1"
@@ -127,6 +130,9 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
+            core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
+            )
             config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
@@ -147,7 +153,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
-                relations=[n2_relation],
+                relations=[n2_relation, core_gnb_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
@@ -226,6 +232,9 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
+            core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
+            )
             config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
@@ -246,7 +255,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
-                relations=[n2_relation],
+                relations=[n2_relation, core_gnb_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
@@ -333,6 +342,9 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
+            core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
+            )
             f1_relation = testing.Relation(
                 endpoint="fiveg_f1",
                 interface="fiveg_f1",
@@ -357,7 +369,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
-                relations=[n2_relation, f1_relation],
+                relations=[n2_relation, f1_relation, core_gnb_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
@@ -436,6 +448,9 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_ip_address": "1.2.3.4",
                 },
             )
+            core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
+            )
             f1_relation = testing.Relation(
                 endpoint="fiveg_f1",
                 interface="fiveg_f1",
@@ -461,7 +476,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 config={"f1-ip-address": test_f1_ip_address, "f1-port": 3522},
                 leader=True,
                 containers=[container],
-                relations=[n2_relation, f1_relation],
+                relations=[n2_relation, f1_relation, core_gnb_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
@@ -488,6 +503,9 @@ class TestCharmConfigure(CUCharmFixtures):
                     "amf_port": "38412",
                     "amf_ip_address": "1.2.3.4",
                 },
+            )
+            core_gnb_relation = testing.Relation(
+                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
             )
             f1_relation = testing.Relation(
                 endpoint="fiveg_f1",
@@ -525,7 +543,7 @@ class TestCharmConfigure(CUCharmFixtures):
                 model=testing.Model(name="whatever"),
                 leader=True,
                 containers=[container],
-                relations=[n2_relation, f1_relation],
+                relations=[n2_relation, f1_relation, core_gnb_relation],
             )
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"

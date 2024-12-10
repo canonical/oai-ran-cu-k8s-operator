@@ -13,17 +13,17 @@ output "fiveg_n2_endpoint" {
   value       = "fiveg_n2"
 }
 
+output "fiveg_core_gnb_endpoint" {
+  description = "Name of the endpoint used to provide core network configuration to gNB."
+  value       = "fiveg_core_gnb"
+}
+
 output "logging_endpoint" {
   description = "Name of the endpoint used to integrate with the Logging provider."
   value       = "logging"
 }
 
 # Provided integration endpoints
-
-output "fiveg_gnb_identity_endpoint" {
-  description = "Name of the endpoint used to provide information about simulated gNB instance."
-  value       = "fiveg_gnb_identity"
-}
 
 output "fiveg_f1_endpoint" {
   description = "Name of the endpoint used to provide information about F1 interface."
