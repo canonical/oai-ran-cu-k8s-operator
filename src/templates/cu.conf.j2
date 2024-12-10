@@ -13,8 +13,8 @@ gNBs =
         (
             {% for plmn in plmn_list -%}
             {
-                mcc        = {{ plmn.mcc }};
-                mnc        = {{ plmn.mnc }};
+                mcc = {{ plmn.mcc }};
+                mnc = {{ plmn.mnc }};
                 mnc_length = 2;
                 snssaiList =
                 (

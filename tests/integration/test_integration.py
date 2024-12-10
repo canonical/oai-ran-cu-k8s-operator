@@ -14,12 +14,12 @@ from pytest_operator.plugin import OpsTest
 METADATA = yaml.safe_load(Path("./charmcraft.yaml").read_text())
 APP_NAME = METADATA["name"]
 AMF_CHARM_NAME = "sdcore-amf-k8s"
-AMF_CHARM_CHANNEL = "1.5/edge"
+AMF_CHARM_CHANNEL = "1.6/edge"
 DB_CHARM_NAME = "mongodb-k8s"
 DB_CHARM_CHANNEL = "6/stable"
 GRAFANA_AGENT_CHARM_NAME = "grafana-agent-k8s"
 NRF_CHARM_NAME = "sdcore-nrf-k8s"
-NRF_CHARM_CHANNEL = "1.5/edge"
+NRF_CHARM_CHANNEL = "1.6/edge"
 NMS_MOCK = "nms-mock"
 TLS_CHARM_NAME = "self-signed-certificates"
 TLS_CHARM_CHANNEL = "latest/stable"

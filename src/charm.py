@@ -17,6 +17,7 @@ from charms.kubernetes_charm_libraries.v0.multus import (
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.oai_ran_cu_k8s.v0.fiveg_f1 import F1Provides
+from charms.oai_ran_cu_k8s.v0.fiveg_f1 import PLMNConfig as F1_PLMNConfig
 from charms.sdcore_amf_k8s.v0.fiveg_n2 import N2Requires
 from charms.sdcore_nms_k8s.v0.fiveg_core_gnb import FivegCoreGnbRequires, PLMNConfig
 from jinja2 import Environment, FileSystemLoader
@@ -229,6 +230,7 @@ class OAIRANCUOperator(CharmBase):
         tac = self._core_gnb_requirer.tac
         plmns = self._core_gnb_requirer.plmns
         if not tac or not plmns:
+            logger.warning("TAC and PLMNs config are not available")
             return ""
         if self._f1_provider.requirer_f1_port:
             du_f1_port = self._f1_provider.requirer_f1_port
@@ -401,16 +403,16 @@ class OAIRANCUOperator(CharmBase):
         if not (f1_ip := self._charm_config.f1_ip_address):
             logger.error("F1 IP address is not available")
             return
-        tac = self._core_gnb_requirer.tac
-        plmns = self._core_gnb_requirer.plmns
-        if not tac or not plmns:
+        core_gnb_tac = self._core_gnb_requirer.tac
+        core_gnb_plmns = self._core_gnb_requirer.plmns
+        if not core_gnb_tac or not core_gnb_plmns:
             return
-
+        f1_plmns = [F1_PLMNConfig(**vars(plmn)) for plmn in core_gnb_plmns]
         self._f1_provider.set_f1_information(
             ip_address=f1_ip.split("/")[0],
             port=self._charm_config.f1_port,
-            tac=tac,
-            plmns=plmns,  # type: ignore
+            tac=core_gnb_tac,
+            plmns=f1_plmns,
         )
 
     def _exec_command_in_workload_container(
