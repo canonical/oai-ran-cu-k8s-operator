@@ -1,4 +1,4 @@
-# Copyright 2024 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 output "app_name" {
@@ -6,26 +6,16 @@ output "app_name" {
   value       = juju_application.cu.name
 }
 
-# Required integration endpoints
-
-output "fiveg_n2_endpoint" {
-  description = "Name of the endpoint used to provide information on connectivity to the N2 plane."
-  value       = "fiveg_n2"
+output "provides" {
+  value = {
+    "fiveg_f1" = "fiveg_f1"
+  }
 }
 
-output "fiveg_core_gnb_endpoint" {
-  description = "Name of the endpoint used to provide core network configuration to gNB."
-  value       = "fiveg_core_gnb"
-}
-
-output "logging_endpoint" {
-  description = "Name of the endpoint used to integrate with the Logging provider."
-  value       = "logging"
-}
-
-# Provided integration endpoints
-
-output "fiveg_f1_endpoint" {
-  description = "Name of the endpoint used to provide information about F1 interface."
-  value       = "fiveg_f1"
+output "requires" {
+  value = {
+    "fiveg_n2"       = "fiveg_n2"
+    "fiveg_core_gnb" = "fiveg_core_gnb"
+    "logging"        = "logging"
+  }
 }
