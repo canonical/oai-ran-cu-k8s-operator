@@ -131,7 +131,9 @@ class TestCharmConfigure(CUCharmFixtures):
                 },
             )
             core_gnb_relation = testing.Relation(
-                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
+                endpoint="fiveg_core_gnb",
+                interface="fiveg_core_gnb",
+                local_app_data={"gnb-name": "ran-cu-name"},
             )
             config_mount = testing.Mount(
                 location="/tmp/conf",
@@ -233,7 +235,9 @@ class TestCharmConfigure(CUCharmFixtures):
                 },
             )
             core_gnb_relation = testing.Relation(
-                endpoint="fiveg_core_gnb", interface="fiveg_core_gnb"
+                endpoint="fiveg_core_gnb",
+                interface="fiveg_core_gnb",
+                local_app_data={"gnb-name": "ran-cu-name"},
             )
             config_mount = testing.Mount(
                 location="/tmp/conf",
