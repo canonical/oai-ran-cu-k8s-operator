@@ -147,6 +147,11 @@ class OAIRANCUOperator(CharmBase):
         if not self._core_gnb_requirer.tac or not self._core_gnb_requirer.plmns:
             event.add_status(WaitingStatus("Waiting for TAC and PLMNs configuration"))
             return
+        if not self._is_gnb_name_published():
+            event.add_status(
+                BlockedStatus("Invalid configuration: gNB name is missing from the relation")
+            )
+            return
         event.add_status(ActiveStatus())
 
     def _configure(self, _) -> None:  # noqa C901
@@ -179,6 +184,8 @@ class OAIRANCUOperator(CharmBase):
         if not self._relation_created(N2_RELATION_NAME):
             return
         if not self._n2_requirer.amf_hostname:
+            return
+        if not self._is_gnb_name_published():
             return
         cu_config = self._generate_cu_config()
         if config_update_required := not self._is_cu_config_up_to_date(cu_config):
@@ -391,7 +398,16 @@ class OAIRANCUOperator(CharmBase):
         if not self._relation_created(CORE_GNB_RELATION_NAME):
             logger.info("No %s relations found.", CORE_GNB_RELATION_NAME)
             return
-        self._core_gnb_requirer.publish_gnb_information(gnb_name=self._gnb_name)
+        try:
+            self._core_gnb_requirer.publish_gnb_information(gnb_name=self._gnb_name)
+        except ValueError:
+            return
+
+    def _is_gnb_name_published(self) -> bool:
+        relation = self.model.get_relation(CORE_GNB_RELATION_NAME)
+        if not relation:
+            return False
+        return relation.data[self.app].get("gnb-name") is not None
 
     def _update_fiveg_f1_relation_data(self) -> None:
         """Publish F1 interface information in the `fiveg_f1` relation data bag."""
