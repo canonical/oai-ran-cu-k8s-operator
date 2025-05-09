@@ -52,13 +52,13 @@ config:
       default: bridge
       description: |
         Multus CNI plugin to use for the interfaces.
-        Allowed values are `bridge`, `macvlan`.
+        Allowed values are `bridge`, `macvlan` and `host-device`.
     f1-interface-name:
       type: string
       default: "f1"
       description: |
         Host interface to use for the F1 communication with the DU.
-        With the `macvlan` CNI, the corresponding macvlan interface needs to exist on the host.
+        With the `macvlan` or `host-device` CNIs, the corresponding interface needs to exist on the host.
     f1-ip-address:
       type: string
       default: "192.168.254.7/24"
@@ -72,7 +72,7 @@ config:
       default: "n3"
       description: | 
         Host interface to use for the N3 communication with the UPF.
-        With the `macvlan` CNI, the corresponding macvlan interface needs to exist on the host.
+        With the `macvlan` or `host-device` CNIs, the corresponding interface needs to exist on the host.
     n3-ip-address:
       type: string
       default: "192.168.251.6/24"
