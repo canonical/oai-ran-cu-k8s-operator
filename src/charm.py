@@ -318,18 +318,18 @@ class OAIRANCUOperator(CharmBase):
             f"{self._charm_config.f1_interface_name}-br",
         )
 
-    def _add_cni_type_to_nad_config(
-        self, nad_config: dict, master_interface: str, bridge: str
-    ) -> dict:
+    def _add_cni_type_to_nad_config(self, nad_config: dict, interface: str, bridge: str) -> dict:
         if self._charm_config.cni_type == CNIType.macvlan:
             nad_config.update(
                 {
                     "type": "macvlan",
-                    "master": master_interface,
+                    "master": interface,
                 }
             )
         elif self._charm_config.cni_type == CNIType.bridge:
             nad_config.update({"type": "bridge", "bridge": bridge})
+        elif self._charm_config.cni_type == CNIType.host_device:
+            nad_config.update({"type": "host-device", "device": interface})
         return nad_config
 
     def _network_attachment_definitions_from_config(self) -> list[NetworkAttachmentDefinition]:
