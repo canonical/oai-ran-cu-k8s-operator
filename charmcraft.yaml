@@ -31,7 +31,7 @@ resources:
   cu-image:
     type: oci-image
     description: Container image for the OAI RAN Central Unit (CU).
-    upstream-source: ghcr.io/canonical/oai-ran-cu:2.2.0
+    upstream-source: ghcr.io/canonical/oai-ran-cu:2.3.0
 
 provides:
   fiveg_f1:
