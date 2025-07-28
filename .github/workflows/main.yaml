@@ -60,7 +60,7 @@ jobs:
       CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
 
   fiveg-f1-lib-needs-publishing:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       needs-publishing: ${{ steps.changes.outputs.fiveg_f1 }}
     steps:
