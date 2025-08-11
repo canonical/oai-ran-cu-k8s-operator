@@ -1,6 +1,10 @@
 # OAI RAN CU (Central Unit) Operator (k8s)
 [![CharmHub Badge](https://charmhub.io/oai-ran-cu-k8s/badge.svg)](https://charmhub.io/oai-ran-cu-k8s)
 
+> **:warning: Deprecation Notice!**
+>
+> This project is deprecated and will not receive further updates. Please refer to the upstream [OAI](https://openairinterface.org/) project to continue using OAI.
+
 A Charmed Operator for the OAI RAN Central Unit (CU) for K8s.
 
 ## Pre-requisites
